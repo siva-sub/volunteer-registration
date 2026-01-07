@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Volunteer registration for towel and soap sales at Sri Thendayuthapani Temple during the festival period (17-30 January 2026)">
+  <title>Volunteer Registration | Sri Thendayuthapani Temple</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="container">
+        <div class="header-content">
+          <div class="temple-icon">🙏</div>
+          <h1 class="header-title">Sri Thendayuthapani Temple</h1>
+          <p class="header-subtitle">Volunteer Registration</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+      <div class="container">
+        <!-- Introduction -->
+        <section class="intro-section">
+          <div class="intro-card">
+            <h2 class="intro-title">Towel & Soap Sales Volunteer Sign-up</h2>
+            <p class="intro-text">
+              Thank you for your interest in serving at the temple during our festival period 
+              <strong>(17 – 30 January 2026)</strong>. Volunteers help distribute towels and soap 
+              to devotees — a simple but meaningful act of service.
+            </p>
+            <div class="intro-details">
+              <div class="intro-detail">
+                <span class="detail-icon">☀️</span>
+                <div>
+                  <strong>Morning Shift</strong>
+                  <span>8:00 AM – 12:00 PM</span>
+                </div>
+              </div>
+              <div class="intro-detail">
+                <span class="detail-icon">🌙</span>
+                <div>
+                  <strong>Evening Shift</strong>
+                  <span>5:30 PM – 8:30 PM</span>
+                </div>
+              </div>
+            </div>
+            <p class="intro-note">
+              Each shift can accommodate up to <strong>2 volunteers</strong>. 
+              You may sign up for multiple shifts across different days.
+            </p>
+          </div>
+        </section>
+
+        <!-- Date Selector -->
+        <section class="date-section">
+          <h3 class="section-title">Select Date</h3>
+          <div class="date-strip-wrapper">
+            <button class="date-nav date-nav-prev" id="datePrev" aria-label="Previous dates">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15,18 9,12 15,6"></polyline>
+              </svg>
+            </button>
+            <div class="date-strip" id="dateStrip" role="tablist" aria-label="Festival dates">
+              <!-- Date buttons will be inserted here -->
+            </div>
+            <button class="date-nav date-nav-next" id="dateNext" aria-label="Next dates">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9,6 15,12 9,18"></polyline>
+              </svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- Shift Cards -->
+        <section class="shifts-section">
+          <h3 class="section-title" id="shiftsTitle">Loading shifts...</h3>
+          <div class="shifts-grid" id="shiftsGrid">
+            <!-- Skeleton loaders -->
+            <div class="shift-card skeleton">
+              <div class="skeleton-icon"></div>
+              <div class="skeleton-text"></div>
+              <div class="skeleton-text short"></div>
+              <div class="skeleton-badge"></div>
+            </div>
+            <div class="shift-card skeleton">
+              <div class="skeleton-icon"></div>
+              <div class="skeleton-text"></div>
+              <div class="skeleton-text short"></div>
+              <div class="skeleton-badge"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Selected Shifts Summary -->
+        <section class="summary-section" id="summarySection" hidden>
+          <h3 class="section-title">Your Selected Shifts</h3>
+          <div class="summary-card">
+            <ul class="summary-list" id="summaryList">
+              <!-- Selected shifts will be inserted here -->
+            </ul>
+            <p class="summary-note">
+              <span class="summary-count" id="summaryCount">0</span> shift(s) selected
+            </p>
+          </div>
+        </section>
+
+        <!-- Registration Form -->
+        <section class="form-section" id="formSection">
+          <h3 class="section-title">Your Details</h3>
+          <form class="registration-form" id="registrationForm" novalidate>
+            <div class="form-group">
+              <label for="fullName" class="form-label">Full Name <span class="required">*</span></label>
+              <input 
+                type="text" 
+                id="fullName" 
+                name="fullName" 
+                class="form-input" 
+                placeholder="Enter your full name"
+                required
+                autocomplete="name"
+              >
+              <p class="form-error" id="fullNameError"></p>
+            </div>
+
+            <div class="form-group">
+              <label for="phone" class="form-label">Phone Number <span class="required">*</span></label>
+              <input 
+                type="tel" 
+                id="phone" 
+                name="phone" 
+                class="form-input" 
+                placeholder="Enter your phone number"
+                required
+                autocomplete="tel"
+              >
+              <p class="form-error" id="phoneError"></p>
+            </div>
+
+            <div class="form-group">
+              <label for="email" class="form-label">Email Address <span class="optional">(optional)</span></label>
+              <input 
+                type="email" 
+                id="email" 
+                name="email" 
+                class="form-input" 
+                placeholder="Enter your email address"
+                autocomplete="email"
+              >
+              <p class="form-hint">
+                If provided, we'll send you a confirmation and a reminder one day before your shift.
+              </p>
+              <p class="form-error" id="emailError"></p>
+            </div>
+
+            <!-- Review Section -->
+            <div class="review-section" id="reviewSection" hidden>
+              <h4 class="review-title">Review Your Registration</h4>
+              <div class="review-content" id="reviewContent">
+                <!-- Review details will be inserted here -->
+              </div>
+            </div>
+
+            <!-- Form Error -->
+            <div class="form-global-error" id="formGlobalError" hidden>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <p id="formGlobalErrorText"></p>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="submit-btn" id="submitBtn" disabled>
+              <span class="submit-text">Register for Selected Shifts</span>
+              <span class="submit-loading" hidden>
+                <span class="spinner"></span>
+                Processing...
+              </span>
+            </button>
+          </form>
+        </section>
+
+        <!-- Success Message -->
+        <section class="success-section" id="successSection" hidden>
+          <div class="success-card">
+            <div class="success-icon">✓</div>
+            <h3 class="success-title">Registration Successful!</h3>
+            <p class="success-text">
+              Thank you for volunteering. Your service is truly appreciated.
+            </p>
+            <div class="success-details" id="successDetails">
+              <!-- Success details will be inserted here -->
+            </div>
+            <p class="success-note" id="successEmailNote" hidden>
+              A confirmation email has been sent to your email address.
+              You'll also receive a reminder one day before each shift.
+            </p>
+            <button class="register-another-btn" id="registerAnotherBtn">
+              Register for More Shifts
+            </button>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <p class="footer-text">
+          Sri Thendayuthapani Temple — Festival Volunteer Coordination<br>
+          <a href="/admin.html" class="admin-link">Organiser Access</a>
+        </p>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

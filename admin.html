@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Admin | Volunteer Registration | Sri Thendayuthapani Temple</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/src/styles.css">
+    <link rel="stylesheet" href="/src/admin.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header header--admin">
+            <div class="container container--wide">
+                <div class="header-content">
+                    <div class="header-left">
+                        <div class="temple-icon">🙏</div>
+                        <div>
+                            <h1 class="header-title">Volunteer Management</h1>
+                            <p class="header-subtitle">Sri Thendayuthapani Temple — Festival 2026</p>
+                        </div>
+                    </div>
+                    <a href="/" class="header-back-link">← Back to Registration</a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Auth Screen -->
+        <main class="main" id="authScreen">
+            <div class="container">
+                <div class="auth-card">
+                    <h2 class="auth-title">Organiser Access</h2>
+                    <p class="auth-text">Please enter the admin password to view registrations.</p>
+                    <form id="authForm">
+                        <div class="form-group">
+                            <label for="adminPassword" class="form-label">Password</label>
+                            <input type="password" id="adminPassword" class="form-input"
+                                placeholder="Enter admin password" required autocomplete="current-password">
+                            <p class="form-error" id="authError"></p>
+                        </div>
+                        <button type="submit" class="submit-btn">Access Dashboard</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <!-- Admin Dashboard -->
+        <main class="main admin-main" id="adminDashboard" hidden>
+            <div class="container container--wide">
+                <!-- Stats -->
+                <section class="stats-section">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-value" id="totalRegistrations">0</span>
+                            <span class="stat-label">Total Registrations</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="totalSlotsFilled">0</span>
+                            <span class="stat-label">Slots Filled</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="slotsRemaining">0</span>
+                            <span class="stat-label">Slots Remaining</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Quick Actions -->
+                <section class="actions-section">
+                    <div class="actions-bar">
+                        <div class="filter-group">
+                            <label for="dateFilter" class="filter-label">Filter by Date:</label>
+                            <select id="dateFilter" class="filter-select">
+                                <option value="all">All Dates</option>
+                            </select>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="action-btn action-btn--secondary" id="refreshBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polyline points="23,4 23,10 17,10"></polyline>
+                                    <path d="M20.49,15a9,9,0,1,1-2.12-9.36L23,10"></path>
+                                </svg>
+                                Refresh
+                            </button>
+                            <button class="action-btn action-btn--primary" id="exportBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21,15v4a2,2,0,0,1-2,2H5a2,2,0,0,1-2-2v-4"></path>
+                                    <polyline points="7,10 12,15 17,10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Export CSV
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Registrations Table -->
+                <section class="table-section">
+                    <div class="table-wrapper">
+                        <table class="data-table" id="registrationsTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Shifts</th>
+                                    <th>Registered</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                <tr>
+                                    <td colspan="5" class="table-loading">Loading registrations...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="table-empty" id="tableEmpty" hidden>No registrations found.</p>
+                </section>
+
+                <!-- Shift Overview -->
+                <section class="overview-section">
+                    <h3 class="section-title">Shift Availability Overview</h3>
+                    <div class="overview-grid" id="overviewGrid">
+                        <!-- Shift overview cards will be inserted here -->
+                    </div>
+                </section>
+
+                <!-- Send Reminders -->
+                <section class="reminders-section">
+                    <h3 class="section-title">Reminder Emails</h3>
+                    <div class="reminders-card">
+                        <p class="reminders-text">
+                            Reminder emails are automatically sent to volunteers one day before their shift.
+                            Only volunteers who provided an email address will receive reminders.
+                        </p>
+                        <button class="action-btn action-btn--secondary" id="sendRemindersBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M4,4H20a2,2,0,0,1,2,2V18a2,2,0,0,1-2,2H4a2,2,0,0,1-2-2V6A2,2,0,0,1,4,4Z">
+                                </path>
+                                <polyline points="22,6 12,13 2,6"></polyline>
+                            </svg>
+                            Send Tomorrow's Reminders Now
+                        </button>
+                        <p class="reminders-note" id="remindersStatus"></p>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Edit Registration Modal -->
+        <div class="modal-overlay" id="editModal" hidden>
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">Edit Registration</h3>
+                    <button class="modal-close" id="editModalClose">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="editForm">
+                        <input type="hidden" id="editRegId">
+                        <div class="form-group">
+                            <label for="editName" class="form-label">Full Name</label>
+                            <input type="text" id="editName" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editPhone" class="form-label">Phone Number</label>
+                            <input type="tel" id="editPhone" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editEmail" class="form-label">Email Address</label>
+                            <input type="email" id="editEmail" class="form-input">
+                        </div>
+                        <div class="modal-actions">
+                            <button type="button" class="action-btn action-btn--secondary"
+                                id="editCancelBtn">Cancel</button>
+                            <button type="submit" class="action-btn action-btn--primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <p class="footer-text">
+                    Sri Thendayuthapani Temple — Festival Volunteer Coordination
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script type="module" src="/src/admin.js"></script>
+</body>
+
+</html>
