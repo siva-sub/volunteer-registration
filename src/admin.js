@@ -28,7 +28,8 @@ const state = {
     isAuthenticated: false,
     registrations: [],
     slots: [],
-    selectedDateFilter: 'all'
+    selectedDateFilter: 'all',
+    regIdToDelete: null
 };
 
 // =====================================================
@@ -66,7 +67,13 @@ const elements = {
     editCancelBtn: document.getElementById('editCancelBtn'),
 
     sendRemindersBtn: document.getElementById('sendRemindersBtn'),
-    remindersStatus: document.getElementById('remindersStatus')
+    remindersStatus: document.getElementById('remindersStatus'),
+
+    // Delete Modal
+    deleteModal: document.getElementById('deleteModal'),
+    deleteModalClose: document.getElementById('deleteModalClose'),
+    deleteCancelBtn: document.getElementById('deleteCancelBtn'),
+    deleteConfirmBtn: document.getElementById('deleteConfirmBtn')
 };
 
 // =====================================================
@@ -299,7 +306,7 @@ function renderTable() {
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const tr = e.target.closest('tr');
-            deleteRegistration(tr.dataset.id);
+            openDeleteModal(tr.dataset.id);
         });
     });
 }
@@ -405,20 +412,33 @@ async function handleEditSubmit(e) {
     }
 }
 
-async function deleteRegistration(regId) {
-    if (!confirm('Are you sure you want to delete this registration? This will free up the slots.')) {
-        return;
-    }
+function openDeleteModal(regId) {
+    state.regIdToDelete = regId;
+    elements.deleteModal.hidden = false;
+}
+
+function closeDeleteModal() {
+    state.regIdToDelete = null;
+    elements.deleteModal.hidden = true;
+}
+
+async function handleConfirmDelete() {
+    if (!state.regIdToDelete) return;
+
+    const originalText = elements.deleteConfirmBtn.textContent;
+    elements.deleteConfirmBtn.textContent = 'Deleting...';
+    elements.deleteConfirmBtn.disabled = true;
 
     try {
         const { data, error } = await supabase.rpc('admin_delete_registration', {
             p_password: ADMIN_PASSWORD,
-            p_registration_id: regId
+            p_registration_id: state.regIdToDelete
         });
 
         if (error) throw error;
 
         if (data.success) {
+            closeDeleteModal();
             await loadData(); // Refresh data
         } else {
             alert('Error deleting: ' + data.error);
@@ -426,6 +446,9 @@ async function deleteRegistration(regId) {
     } catch (error) {
         console.error('Delete failed:', error);
         alert('Failed to delete registration');
+    } finally {
+        elements.deleteConfirmBtn.textContent = originalText;
+        elements.deleteConfirmBtn.disabled = false;
     }
 }
 
@@ -558,7 +581,15 @@ function init() {
         if (e.target === elements.editModal) {
             closeEditModal();
         }
+        if (e.target === elements.deleteModal) {
+            closeDeleteModal();
+        }
     });
+
+    // Delete Modal Listeners
+    elements.deleteModalClose.addEventListener('click', closeDeleteModal);
+    elements.deleteCancelBtn.addEventListener('click', closeDeleteModal);
+    elements.deleteConfirmBtn.addEventListener('click', handleConfirmDelete);
 }
 
 init();

@@ -515,3 +515,12 @@
     gap: var(--space-3);
     margin-top: var(--space-6);
 }
+.action-btn--danger {
+    background: var(--color-error);
+    border: 2px solid var(--color-error);
+    color: var(--color-white);
+}
+
+.action-btn--danger:hover {
+    filter: brightness(0.9);
+}
