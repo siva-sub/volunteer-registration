@@ -7,6 +7,39 @@ A web-based volunteer registration system for managing towel and soap sales shif
 - **Public Registration:** [siva-sub.github.io/volunteer-registration](https://siva-sub.github.io/volunteer-registration/)
 - **Admin Dashboard:** [siva-sub.github.io/volunteer-registration/admin/](https://siva-sub.github.io/volunteer-registration/admin/)
 
+## 📸 Screenshots
+| Public Registration | Admin Dashboard |
+|:---:|:---:|
+| ![Public Registration](screenshots/registration.png) | ![Admin Dashboard](screenshots/dashboard.png) |
+
+<p align="center">
+  <img src="screenshots/login.png" width="400" alt="Admin Login">
+</p>
+
+## 🏗️ Architecture
+```mermaid
+graph TD
+    User([User / Volunteer])
+    Browser[Web Browser / Mobile]
+    GH[GitHub Pages (Frontend)]
+    Supabase[(Supabase Backend)]
+    Edge{{Edge Functions}}
+    Resend[Resend API]
+    Email([User Email])
+
+    User -->|Visits| Browser
+    Browser -->|Loads Assets| GH
+    Browser -->|Reads/Writes Data| Supabase
+    Supabase -->|Triggers| Edge
+    Edge -->|Calls| Resend
+    Resend -->|Delivers| Email
+    
+    subgraph "Supabase Infrastructure"
+    Supabase
+    Edge
+    end
+```
+
 ## ✨ Features
 - **Public Registration:**
   - Simple, mobile-responsive interface.
