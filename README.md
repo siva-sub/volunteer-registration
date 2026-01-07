@@ -136,5 +136,30 @@ Run the SQL scripts in `supabase/` using the Supabase SQL Editor:
 3. Replace `YOUR_SERVICE_ROLE_KEY` with your project's service role key (found in Settings > API).
 4. Run the script in the SQL Editor to schedule the job.
 
+## 🍴 Fork & Customize
+Want to use this system for your own event? Follow these steps:
+
+### 1. Fork the Repository
+Click the **Fork** button at the top right of this page to create your own copy.
+
+### 2. Customize Content
+Edit the following files to match your event:
+- **`index.html`**: Update the Title, Header, and Event Description.
+- **`src/main.js`**:
+  - Update `generateFestivalDates()` to change the event dates.
+  - Update `shifts` array to change shift types (e.g., "Morning", "Afternoon").
+- **`vite.config.js`**: Update `base` URL to match your repository name (`base: '/your-repo-name/'`).
+- **`supabase/functions/send-email/index.ts`**: Update the email templates (Subject, Body, Logo).
+- **`supabase/functions/send-reminders/index.ts`**: Update the reminder email template.
+
+### 3. Setup Backend
+Follow the [Configuration Guide](#%EF%B8%8F-configuration-guide) above to set up your own Supabase project.
+*Important: You must create your own Supabase project and link it.*
+
+### 4. Deploy to GitHub Pages
+1. Go to **Settings > Pages** in your GitHub repository.
+2. Select `GitHub Actions` as the Source.
+3. The included workflow `.github/workflows/deploy.yml` will automatically build and deploy the site whenever you push to `main`.
+
 ## 📝 License
 This project is created for the Sri Thendayuthapani Temple volunteer coordination.
