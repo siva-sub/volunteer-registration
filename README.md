@@ -55,7 +55,7 @@ graph TD
   - Delete/Edit registrations with confirmation.
 - **Automated Communication:**
   - Confirmation emails upon registration using Resend.
-  - Daily reminder emails sent 1 day before shifts (via Supabase Cron).
+  - Daily reminder emails sent 1 day before shifts at **9:00 AM SGT** (via Supabase Cron).
 
 ## 🛠️ Tech Stack
 - **Frontend:** HTML5, CSS3, Vanilla JavaScript, Vite.
@@ -93,6 +93,10 @@ The project relies on a Supabase backend project.
   - `send-reminders`: Cron-job target for daily reminders.
 - **Database:**
   - Uses Row Level Security (RLS) and custom Postgres Functions (RPCs) to secure data access.
+
+### Recurring Jobs
+- **Reminders:** Configured via `pg_cron` to run daily at 9:00 AM SGT.
+![Cron Job Setup](screenshots/cron_setup.png)
 
 ## 📝 License
 This project is created for the Sri Thendayuthapani Temple volunteer coordination.
