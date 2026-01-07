@@ -162,4 +162,4 @@ Follow the [Configuration Guide](#%EF%B8%8F-configuration-guide) above to set up
 3. The included workflow `.github/workflows/deploy.yml` will automatically build and deploy the site whenever you push to `main`.
 
 ## 📝 License
-This project is created for the Sri Thendayuthapani Temple volunteer coordination.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
