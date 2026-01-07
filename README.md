@@ -94,9 +94,47 @@ The project relies on a Supabase backend project.
 - **Database:**
   - Uses Row Level Security (RLS) and custom Postgres Functions (RPCs) to secure data access.
 
-### Recurring Jobs
-- **Reminders:** Configured via `pg_cron` to run daily at 9:00 AM SGT.
-![Cron Job Setup](screenshots/cron_setup.png)
+### ⏰ Recurring Jobs (Cron)
+The system uses `pg_cron` to automate daily reminders.
+
+```mermaid
+sequenceDiagram
+    participant Cron as Supabase Cron
+    participant Edge as Edge Function
+    participant DB as Database
+    participant Resend as Resend API
+    participant User as Volunteer
+
+    loop Daily at 9:00 AM SGT
+        Cron->>Edge: Trigger send-reminders
+        Edge->>DB: Fetch tomorrow's shifts
+        DB-->>Edge: Return volunteers
+        Edge->>Resend: Send Email Request
+        Resend-->>User: Email Delivered
+    end
+```
+
+## ⚙️ Configuration Guide
+
+### 1. Database Setup
+Run the SQL scripts in `supabase/` using the Supabase SQL Editor:
+- `schema.sql`: Sets up tables and security policies.
+- `admin_secure.sql`: Deploys admin RPC functions.
+
+### 2. Edge Functions
+1. Link your project: `npx supabase link`
+2. Set secrets: `npx supabase secrets set RESEND_API_KEY=your_key`
+3. Deploy:
+   ```bash
+   npx supabase functions deploy send-email
+   npx supabase functions deploy send-reminders
+   ```
+
+### 3. Cron Job Setup
+1. Enable the `pg_cron` extension in Supabase Dashboard > Database > Extensions.
+2. Open `supabase/cron.sql`.
+3. Replace `YOUR_SERVICE_ROLE_KEY` with your project's service role key (found in Settings > API).
+4. Run the script in the SQL Editor to schedule the job.
 
 ## 📝 License
 This project is created for the Sri Thendayuthapani Temple volunteer coordination.
