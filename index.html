@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Volunteer registration for towel and soap sales at Sri Thendayuthapani Temple during the festival period (17-30 January 2026)">
+  <meta name="description"
+    content="Volunteer registration for towel and soap sales at Sri Thendayuthapani Temple during the festival period (17-30 January 2026)">
   <title>Volunteer Registration | Sri Thendayuthapani Temple</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/src/styles.css">
+  <link rel="stylesheet" href="./src/styles.css">
 </head>
+
 <body>
   <div id="app">
     <!-- Header -->
@@ -31,8 +34,8 @@
           <div class="intro-card">
             <h2 class="intro-title">Towel & Soap Sales Volunteer Sign-up</h2>
             <p class="intro-text">
-              Thank you for your interest in serving at the temple during our festival period 
-              <strong>(17 – 30 January 2026)</strong>. Volunteers help distribute towels and soap 
+              Thank you for your interest in serving at the temple during our festival period
+              <strong>(17 – 30 January 2026)</strong>. Volunteers help distribute towels and soap
               to devotees — a simple but meaningful act of service.
             </p>
             <div class="intro-details">
@@ -52,7 +55,7 @@
               </div>
             </div>
             <p class="intro-note">
-              Each shift can accommodate up to <strong>2 volunteers</strong>. 
+              Each shift can accommodate up to <strong>2 volunteers</strong>.
               You may sign up for multiple shifts across different days.
             </p>
           </div>
@@ -117,42 +120,22 @@
           <form class="registration-form" id="registrationForm" novalidate>
             <div class="form-group">
               <label for="fullName" class="form-label">Full Name <span class="required">*</span></label>
-              <input 
-                type="text" 
-                id="fullName" 
-                name="fullName" 
-                class="form-input" 
-                placeholder="Enter your full name"
-                required
-                autocomplete="name"
-              >
+              <input type="text" id="fullName" name="fullName" class="form-input" placeholder="Enter your full name"
+                required autocomplete="name">
               <p class="form-error" id="fullNameError"></p>
             </div>
 
             <div class="form-group">
               <label for="phone" class="form-label">Phone Number <span class="required">*</span></label>
-              <input 
-                type="tel" 
-                id="phone" 
-                name="phone" 
-                class="form-input" 
-                placeholder="Enter your phone number"
-                required
-                autocomplete="tel"
-              >
+              <input type="tel" id="phone" name="phone" class="form-input" placeholder="Enter your phone number"
+                required autocomplete="tel">
               <p class="form-error" id="phoneError"></p>
             </div>
 
             <div class="form-group">
               <label for="email" class="form-label">Email Address <span class="optional">(optional)</span></label>
-              <input 
-                type="email" 
-                id="email" 
-                name="email" 
-                class="form-input" 
-                placeholder="Enter your email address"
-                autocomplete="email"
-              >
+              <input type="email" id="email" name="email" class="form-input" placeholder="Enter your email address"
+                autocomplete="email">
               <p class="form-hint">
                 If provided, we'll send you a confirmation and a reminder one day before your shift.
               </p>
@@ -216,12 +199,13 @@
       <div class="container">
         <p class="footer-text">
           Sri Thendayuthapani Temple — Festival Volunteer Coordination<br>
-          <a href="/admin.html" class="admin-link">Organiser Access</a>
+          <a href="admin/" class="admin-link">Organiser Access</a>
         </p>
       </div>
     </footer>
   </div>
 
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="./src/main.js"></script>
 </body>
+
 </html>
