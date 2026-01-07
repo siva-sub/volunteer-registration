@@ -19,13 +19,13 @@ A web-based volunteer registration system for managing towel and soap sales shif
 ## 🏗️ Architecture
 ```mermaid
 graph TD
-    User([User / Volunteer])
-    Browser[Web Browser / Mobile]
-    GH[GitHub Pages (Frontend)]
-    Supabase[(Supabase Backend)]
-    Edge{{Edge Functions}}
-    Resend[Resend API]
-    Email([User Email])
+    User(["User / Volunteer"])
+    Browser["Web Browser / Mobile"]
+    GH["GitHub Pages (Frontend)"]
+    Supabase[("Supabase Backend")]
+    Edge{{"Edge Functions"}}
+    Resend["Resend API"]
+    Email(["User Email"])
 
     User -->|Visits| Browser
     Browser -->|Loads Assets| GH
