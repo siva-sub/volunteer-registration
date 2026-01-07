@@ -6,7 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || 'https://zpqnoxllhbyggyxvvpaa.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || 're_TKGXn539_NADyEisN9B8CrSfLTQSyZg9R';
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 const FROM_EMAIL = 'noreply@resend.dev';
 
 const corsHeaders = {
