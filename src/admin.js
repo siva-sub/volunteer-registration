@@ -79,6 +79,7 @@ const elements = {
     eventModal: document.getElementById('eventModal'),
     eventModalClose: document.getElementById('eventModalClose'),
     eventForm: document.getElementById('eventForm'),
+    eventTemplate: document.getElementById('eventTemplate'),
     eventTitle: document.getElementById('eventTitle'),
     orgName: document.getElementById('orgName'),
     contactPerson: document.getElementById('contactPerson'),
