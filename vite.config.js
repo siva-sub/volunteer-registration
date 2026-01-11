@@ -11,6 +11,7 @@ export default defineConfig({
                 cancel: resolve('cancel.html'),
                 checkin: resolve('checkin.html'),
                 feedback: resolve('feedback.html'),
+                report: resolve('report.html'),
             },
         },
     },

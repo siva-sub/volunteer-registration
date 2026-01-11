@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shift Report | Volunteer Registration</title>
+    <link rel="stylesheet" href="./src/styles.css">
+    <style>
+        .report-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .report-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .report-header h1 {
+            color: var(--color-primary);
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .report-info {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .report-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .report-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .report-info-label {
+            color: var(--color-text-muted);
+            font-size: 0.875rem;
+        }
+
+        .report-info-value {
+            font-weight: 600;
+        }
+
+        .sales-items {
+            margin-bottom: 24px;
+        }
+
+        .sales-item {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .sales-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .sales-item-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .sales-item-price {
+            color: var(--color-text-muted);
+            font-size: 0.875rem;
+        }
+
+        .sales-item-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .sales-input-group label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+            margin-bottom: 4px;
+        }
+
+        .sales-input-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .total-section {
+            background: linear-gradient(135deg, var(--color-primary) 0%, #6B4423 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .total-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .total-amount {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .notes-section {
+            margin-bottom: 24px;
+        }
+
+        .notes-section label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .notes-section textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            min-height: 80px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--color-accent);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .submit-btn:hover {
+            background: var(--color-accent-dark);
+        }
+
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .state-section {
+            text-align: center;
+            padding: 48px 24px;
+        }
+
+        .state-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .state-title {
+            font-size: 1.25rem;
+            color: var(--color-primary);
+            margin-bottom: 8px;
+        }
+
+        .state-message {
+            color: var(--color-text-muted);
+        }
+
+        .not-required-notice {
+            background: #E8F5E9;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .not-required-notice p {
+            color: #4A7C59;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="report-container">
+        <!-- Loading State -->
+        <div id="loadingState" class="state-section">
+            <div class="state-icon">⏳</div>
+            <p class="state-title">Loading...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="state-section" hidden>
+            <div class="state-icon">❌</div>
+            <p class="state-title">Something went wrong</p>
+            <p class="state-message" id="errorMessage">Please try again.</p>
+        </div>
+
+        <!-- Already Submitted State -->
+        <div id="submittedState" class="state-section" hidden>
+            <div class="state-icon">✅</div>
+            <p class="state-title">Report Already Submitted</p>
+            <p class="state-message">Thank you! Your shift report has already been recorded.</p>
+        </div>
+
+        <!-- Success State -->
+        <div id="successState" class="state-section" hidden>
+            <div class="state-icon">🎉</div>
+            <p class="state-title">Report Submitted!</p>
+            <p class="state-message">Thank you for submitting your shift report. The admin will review it shortly.</p>
+        </div>
+
+        <!-- Report Form -->
+        <div id="reportForm" hidden>
+            <div class="report-header">
+                <div style="font-size: 2rem; margin-bottom: 8px;">📊</div>
+                <h1>Shift Report</h1>
+                <p style="color: var(--color-text-muted); font-size: 0.875rem;">Submit your end-of-shift sales report
+                </p>
+            </div>
+
+            <div class="report-info">
+                <div class="report-info-row">
+                    <span class="report-info-label">Volunteer</span>
+                    <span class="report-info-value" id="volunteerName">-</span>
+                </div>
+                <div class="report-info-row">
+                    <span class="report-info-label">Shift</span>
+                    <span class="report-info-value" id="shiftName">-</span>
+                </div>
+                <div class="report-info-row">
+                    <span class="report-info-label">Date</span>
+                    <span class="report-info-value" id="shiftDate">-</span>
+                </div>
+            </div>
+
+            <!-- Not Required Notice (shown when report is optional) -->
+            <div id="notRequiredNotice" class="not-required-notice" hidden>
+                <p>📝 Reporting is <strong>optional</strong> for this shift, but appreciated!</p>
+            </div>
+
+            <!-- Sales Items -->
+            <div class="sales-items" id="salesItems">
+                <!-- Dynamically populated -->
+            </div>
+
+            <!-- Total -->
+            <div class="total-section">
+                <div class="total-label">Total Amount Collected</div>
+                <div class="total-amount">$<span id="totalAmount">0.00</span></div>
+            </div>
+
+            <!-- Notes -->
+            <div class="notes-section">
+                <label for="notesInput">Notes (optional)</label>
+                <textarea id="notesInput"
+                    placeholder="Any additional notes, damaged items, discrepancies, etc."></textarea>
+            </div>
+
+            <button class="submit-btn" id="submitBtn">Submit Report</button>
+        </div>
+    </div>
+
+    <script type="module" src="./src/report.js"></script>
+</body>
+
+</html>
