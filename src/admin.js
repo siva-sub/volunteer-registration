@@ -1141,31 +1141,21 @@ async function loadEventDetails(eventId) {
 
         if (regError) throw regError;
         if (regData.success) {
-            // Filter registrations that belong to this event (meaning they have at least one slot in this event)
+            // Filter registrations that belong to this event (meaning they have at least one shift in this event)
             const allRegs = regData.data || [];
 
-            // Set of slot IDs for this event
-            const eventSlotIds = new Set(state.slots.map(s => s.id));
-
             state.registrations = allRegs.filter(reg => {
-                // If reg has no shifts, it's orphan?
                 if (!reg.shifts || reg.shifts.length === 0) return false;
-                // Check if any shift belongs to this event
-                return reg.shifts.some(s => eventSlotIds.has(s.slot_id) || s.date >= '2020-01-01'); // Fallback logic if slot_id matching fails? 
-                // Actually the API returns `shifts` array with details. We can match dates if we trust them, but slot_id match is best.
-                // admin_get_registrations returns `slot_id` in shifts array? Let's assume so.
-                // Wait, the previous `admin.js` implementation of `renderTable` uses `s.date` access. 
-                // The RPC result structure for `shifts` likely contains slot info.
-
-                // Let's filter by checking if the registration's shifts overlap with our event's slots
-                return reg.shifts.some(s => eventSlotIds.has(s.slot_id));
+                // Check if any shift belongs to this event using event_id (which we verified is now returned by RPC)
+                // Fallback to slot_id check if event_id missing (backward compat)
+                return reg.shifts.some(s => s.event_id === eventId || state.slots.some(slot => slot.id === s.slot_id));
             });
         }
 
         // Load all data concurrently
         await Promise.all([
             loadSlots(),
-            loadRegistrations(),
+            // loadRegistrations(), // Removed: Redundant and undefined
             loadReports(),
             loadFeedbackSummary(),
             loadWaitlist()

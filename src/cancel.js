@@ -136,37 +136,97 @@ function renderRegistration(data) {
         return;
     }
 
-    elements.slotsList.innerHTML = slots.map(slot => {
+    // Build Table HTML
+    const tableHTML = `
+        <div class="cancel-table-container">
+            <table class="cancel-table">
+                <thead>
+                    <tr>
+                        <th class="checkbox-col">
+                            <input type="checkbox" id="selectAllIds">
+                        </th>
+                        <th>Date</th>
+                        <th>Shift / Station</th>
+                        <th>Time</th>
+                        <th class="action-col">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="cancelTableBody">
+                    ${slots.map(slot => {
         const isPast = !slot.can_cancel;
-
-        // Simple icon logic based on shift name
-        let icon = '📅';
-        const nameLower = (slot.shift_name || '').toLowerCase();
-        if (nameLower.includes('morning')) icon = '🌅';
-        else if (nameLower.includes('evening')) icon = '🌙';
-        else if (nameLower.includes('full')) icon = '☀️';
-
         return `
-      <label class="slot-selection-label">
-        <input type="checkbox" name="slot" value="${slot.slot_id}" class="slot-selection-input" ${isPast ? 'disabled' : ''}>
-        <div class="slot-selection-card ${isPast ? 'opacity-50' : ''}" style="${isPast ? 'opacity: 0.6; background: var(--color-bg);' : ''}">
-           <div class="slot-icon-wrapper">${icon}</div>
-           <div class="slot-info">
-             <div class="slot-date">${formatDate(slot.date)}</div>
-             <div class="slot-time">${formatTime(slot.start_time)} – ${formatTime(slot.end_time)}</div>
-             <div class="slot-station">${slot.shift_name} ${slot.station ? `• ${slot.station}` : ''}</div>
-           </div>
-           ${isPast ? '<span style="font-size: 0.75rem; background: var(--color-border); padding: 2px 8px; border-radius: 999px;">Past</span>' : ''}
+                        <tr class="${isPast ? 'past-row' : ''}">
+                            <td class="checkbox-col">
+                                <input type="checkbox" name="slot" value="${slot.slot_id}" class="slot-selection-input" ${isPast ? 'disabled' : ''}>
+                            </td>
+                            <td>
+                                <strong>${formatDate(slot.date)}</strong>
+                                ${isPast ? '<div class="past-badge">Past</div>' : ''}
+                            </td>
+                            <td>
+                                <div>${slot.shift_name}</div>
+                                <div style="font-size: 0.85em; color: var(--color-text-muted);">${slot.station || ''}</div>
+                            </td>
+                            <td>${formatTime(slot.start_time)} – ${formatTime(slot.end_time)}</td>
+                            <td class="action-col">
+                                <button type="button" class="cancel-btn-sm" 
+                                    onclick="handleSingleCancel('${slot.slot_id}')" 
+                                    ${isPast ? 'disabled' : ''}>
+                                    Cancel
+                                </button>
+                            </td>
+                        </tr>
+                        `;
+    }).join('')}
+                </tbody>
+            </table>
         </div>
-      </label>
     `;
-    }).join('');
+
+    elements.slotsList.innerHTML = tableHTML;
+    elements.slotsList.style.display = 'block'; // Override grid style if present
 
     showSection(elements.registrationSection);
 
-    // Enable/disable cancel button based on selection
-    elements.slotsList.addEventListener('change', updateCancelButton);
+    // Attach Listeners
+    const selectAllCheckbox = document.getElementById('selectAllIds');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', (e) => {
+            const checkboxes = document.querySelectorAll('input[name="slot"]:not(:disabled)');
+            checkboxes.forEach(cb => cb.checked = e.target.checked);
+            updateCancelButton();
+        });
+    }
+
+    // Delegation for checkboxes
+    elements.slotsList.addEventListener('change', (e) => {
+        if (e.target.name === 'slot') {
+            updateCancelButton();
+            // Update Select All state
+            const all = document.querySelectorAll('input[name="slot"]:not(:disabled)');
+            const checked = document.querySelectorAll('input[name="slot"]:checked');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = all.length > 0 && all.length === checked.length;
+                selectAllCheckbox.indeterminate = checked.length > 0 && checked.length < all.length;
+            }
+        }
+    });
+
+    // Initial button state
+    updateCancelButton();
 }
+
+window.handleSingleCancel = function (slotId) {
+    const cb = document.querySelector(`input[name="slot"][value="${slotId}"]`);
+    if (cb && !cb.disabled) {
+        cb.checked = true;
+        updateCancelButton(); // Ensure button text updates
+
+        // Trigger modal directly for single item
+        elements.cancelCount.textContent = "1";
+        elements.confirmModal.hidden = false;
+    }
+};
 
 async function handlePhoneSearch(e) {
     e.preventDefault();
@@ -243,18 +303,30 @@ function updateCancelButton() {
     }
 }
 
+// State for cancellation
+let pendingCancellationIds = [];
+
 async function handleCancel(e) {
     e.preventDefault();
 
     const checked = document.querySelectorAll('input[name="slot"]:checked');
     if (checked.length === 0) return;
 
-    const slotIds = Array.from(checked).map(cb => cb.value);
+    pendingCancellationIds = Array.from(checked).map(cb => cb.value);
 
     // Show confirmation modal
-    elements.cancelCount.textContent = slotIds.length;
+    elements.cancelCount.textContent = pendingCancellationIds.length;
     elements.confirmModal.hidden = false;
 }
+
+window.handleSingleCancel = function (slotId) {
+    // Explicitly set pending ID for this action, ignoring checkboxes for the operation
+    // (though we might want to check it visually? No, safer to just target correct ID)
+    pendingCancellationIds = [slotId];
+
+    elements.cancelCount.textContent = "1";
+    elements.confirmModal.hidden = false;
+};
 
 // =====================================================
 // EVENT LISTENERS
@@ -271,13 +343,15 @@ elements.backToSearchBtn.addEventListener('click', () => {
 // Modal event handlers
 elements.confirmCancelNo.addEventListener('click', () => {
     elements.confirmModal.hidden = true;
+    pendingCancellationIds = []; // Clear state
 });
 
 elements.confirmCancelYes.addEventListener('click', async () => {
     elements.confirmModal.hidden = true;
 
-    const checked = document.querySelectorAll('input[name="slot"]:checked');
-    const slotIds = Array.from(checked).map(cb => cb.value);
+    // Use the explicit list
+    const slotIds = pendingCancellationIds;
+    if (!slotIds || slotIds.length === 0) return;
 
     elements.cancelBtn.disabled = true;
     elements.cancelBtn.textContent = 'Cancelling...';
