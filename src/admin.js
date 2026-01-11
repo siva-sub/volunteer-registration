@@ -1989,10 +1989,10 @@ function init() {
     checkExistingAuth();
 
     // Global Listeners
-    elements.authForm.addEventListener('submit', handleAuth);
-    elements.createEventBtn.addEventListener('click', openCreateEventModal);
-    elements.logoutBtn.addEventListener('click', handleLogout);
-    elements.eventForm.addEventListener('submit', handleCreateEventSubmit);
+    if (elements.authForm) elements.authForm.addEventListener('submit', handleAuth);
+    if (elements.createEventBtn) elements.createEventBtn.addEventListener('click', openCreateEventModal);
+    if (elements.logoutBtn) elements.logoutBtn.addEventListener('click', handleLogout);
+    if (elements.eventForm) elements.eventForm.addEventListener('submit', handleCreateEventSubmit);
 
     // ... existing listeners ...
 
@@ -2022,14 +2022,13 @@ function init() {
     if (elements.refreshWaitlistBtn) elements.refreshWaitlistBtn.addEventListener('click', loadWaitlist);
 
     // Event Modal
-    elements.eventModalClose.addEventListener('click', closeEventModal);
-    elements.eventCancelBtn.addEventListener('click', closeEventModal);
-    elements.eventForm.addEventListener('submit', handleCreateEventSubmit);
+    if (elements.eventModalClose) elements.eventModalClose.addEventListener('click', closeEventModal);
+    if (elements.eventCancelBtn) elements.eventCancelBtn.addEventListener('click', closeEventModal);
+    if (elements.eventForm) elements.eventForm.addEventListener('submit', handleCreateEventSubmit);
     if (elements.addQuestionBtn) elements.addQuestionBtn.addEventListener('click', addQuestion);
 
     // Template change listener
-    // Template change listener
-    elements.eventTemplate.addEventListener('change', (e) => {
+    if (elements.eventTemplate) elements.eventTemplate.addEventListener('change', (e) => {
         const templateId = e.target.value;
         console.log('[Template Debug] Selected templateId:', templateId);
         console.log('[Template Debug] state.templates:', state.templates);
@@ -2094,14 +2093,14 @@ function init() {
     });
 
     // Edit Modal
-    elements.editModalClose.addEventListener('click', closeEditModal);
-    elements.editCancelBtn.addEventListener('click', closeEditModal);
-    elements.editForm.addEventListener('submit', handleEditSubmit);
+    if (elements.editModalClose) elements.editModalClose.addEventListener('click', closeEditModal);
+    if (elements.editCancelBtn) elements.editCancelBtn.addEventListener('click', closeEditModal);
+    if (elements.editForm) elements.editForm.addEventListener('submit', handleEditSubmit);
 
     // Delete Modal
-    elements.deleteModalClose.addEventListener('click', closeDeleteModal);
-    elements.deleteCancelBtn.addEventListener('click', closeDeleteModal);
-    elements.deleteConfirmBtn.addEventListener('click', handleConfirmDelete);
+    if (elements.deleteModalClose) elements.deleteModalClose.addEventListener('click', closeDeleteModal);
+    if (elements.deleteCancelBtn) elements.deleteCancelBtn.addEventListener('click', closeDeleteModal);
+    if (elements.deleteConfirmBtn) elements.deleteConfirmBtn.addEventListener('click', handleConfirmDelete);
 
     // Slot Modal
     if (elements.addSlotBtn) elements.addSlotBtn.addEventListener('click', openSlotModal);
