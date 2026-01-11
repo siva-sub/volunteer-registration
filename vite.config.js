@@ -8,6 +8,9 @@ export default defineConfig({
             input: {
                 main: resolve('index.html'),
                 admin: resolve('admin/index.html'),
+                cancel: resolve('cancel.html'),
+                checkin: resolve('checkin.html'),
+                feedback: resolve('feedback.html'),
             },
         },
     },

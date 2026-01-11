@@ -158,6 +158,24 @@
                     <p class="table-empty" id="tableEmpty" hidden>No registrations found.</p>
                 </section>
 
+                <!-- Slots Management -->
+                <section class="slots-section">
+                    <div class="section-header">
+                        <h3 class="section-title">Manage Slots</h3>
+                        <button class="action-btn action-btn--secondary" id="addSlotBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Add Slot
+                        </button>
+                    </div>
+                    <div class="slots-list" id="slotsListGrid">
+                        <!-- Slots grouped by date will be inserted here -->
+                    </div>
+                </section>
+
                 <!-- Shift Overview -->
                 <section class="overview-section">
                     <h3 class="section-title">Shift Availability Overview</h3>
@@ -284,6 +302,49 @@
                             <button type="button" class="action-btn action-btn--secondary"
                                 id="eventCancelBtn">Cancel</button>
                             <button type="submit" class="action-btn action-btn--primary">Create Event</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Slot Modal -->
+        <div class="modal-overlay" id="slotModal" hidden>
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">Add Slot</h3>
+                    <button class="modal-close" id="slotModalClose">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="slotForm">
+                        <div class="form-group">
+                            <label for="slotDate" class="form-label">Date</label>
+                            <input type="date" id="slotDate" class="form-input" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="slotStartTime" class="form-label">Start Time</label>
+                                <input type="time" id="slotStartTime" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="slotEndTime" class="form-label">End Time</label>
+                                <input type="time" id="slotEndTime" class="form-input" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="slotCapacity" class="form-label">Capacity</label>
+                                <input type="number" id="slotCapacity" class="form-input" min="1" value="2" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="slotStation" class="form-label">Station (optional)</label>
+                                <input type="text" id="slotStation" class="form-input" placeholder="e.g., Main Gate">
+                            </div>
+                        </div>
+                        <div class="modal-actions">
+                            <button type="button" class="action-btn action-btn--secondary"
+                                id="slotCancelBtn">Cancel</button>
+                            <button type="submit" class="action-btn action-btn--primary">Add Slot</button>
                         </div>
                     </form>
                 </div>

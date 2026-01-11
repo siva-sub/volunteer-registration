@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Manage your volunteer registration">
+    <title>Manage Registration</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./src/styles.css">
+</head>
+
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <div class="temple-icon">🙏</div>
+                    <h1 class="header-title" id="headerTitle">Manage Registration</h1>
+                    <p class="header-subtitle" id="headerSubtitle">Loading...</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="main">
+            <div class="container">
+                <!-- Loading State -->
+                <section id="loadingSection">
+                    <div class="loading-card">
+                        <div class="spinner"></div>
+                        <p>Loading your registration...</p>
+                    </div>
+                </section>
+
+                <!-- Error State -->
+                <section id="errorSection" hidden>
+                    <div class="error-card">
+                        <div class="error-icon">⚠️</div>
+                        <h3 id="errorTitle">Link Invalid</h3>
+                        <p id="errorMessage">This link is no longer valid or has expired.</p>
+                        <a href="/" class="action-btn action-btn--primary">Return to Home</a>
+                    </div>
+                </section>
+
+                <!-- Registration Details -->
+                <section id="registrationSection" hidden>
+                    <div class="manage-card">
+                        <div class="manage-header">
+                            <h2>Hello, <span id="volunteerName"></span></h2>
+                            <p>Select the shifts you'd like to cancel:</p>
+                        </div>
+
+                        <form id="cancelForm">
+                            <div class="slots-list" id="slotsList">
+                                <!-- Slots will be inserted here -->
+                            </div>
+
+                            <div class="cancel-actions">
+                                <button type="submit" class="action-btn action-btn--danger" id="cancelBtn" disabled>
+                                    Cancel Selected Shifts
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- Success State -->
+                <section id="successSection" hidden>
+                    <div class="success-card">
+                        <div class="success-icon">✓</div>
+                        <h3>Cancellation Complete</h3>
+                        <p id="successMessage">Your selected shifts have been cancelled.</p>
+                        <a href="/" class="action-btn action-btn--primary">Return to Home</a>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="container">
+                <p class="footer-text">
+                    Sri Thendayuthapani Temple — Volunteer Coordination
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script type="module" src="./src/cancel.js"></script>
+</body>
+
+</html>

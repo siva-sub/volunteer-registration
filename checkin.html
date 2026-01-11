@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Volunteer check-in">
+    <title>Volunteer Check-in</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./src/styles.css">
+</head>
+
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <div class="temple-icon">🙏</div>
+                    <h1 class="header-title">Volunteer Check-in</h1>
+                    <p class="header-subtitle" id="shiftInfo">Loading...</p>
+                </div>
+            </div>
+        </header>
+
+        <main class="main">
+            <div class="container">
+                <!-- Loading State -->
+                <section id="loadingSection">
+                    <div class="loading-card">
+                        <div class="spinner"></div>
+                        <p>Processing check-in...</p>
+                    </div>
+                </section>
+
+                <!-- Success State -->
+                <section id="successSection" hidden>
+                    <div class="success-card">
+                        <div class="success-icon">✓</div>
+                        <h3>Check-in Complete!</h3>
+                        <p id="volunteerName"></p>
+                        <p id="checkInTime" class="success-details"></p>
+                        <p class="success-note">Thank you for your service today!</p>
+                    </div>
+                </section>
+
+                <!-- Too Early State -->
+                <section id="earlySection" hidden>
+                    <div class="info-card">
+                        <div class="info-icon">⏰</div>
+                        <h3>Check-in Not Yet Open</h3>
+                        <p id="earlyName"></p>
+                        <p class="info-details">Check-in opens at: <strong id="opensAt"></strong></p>
+                        <p class="info-note">Please return when the check-in window opens.</p>
+                    </div>
+                </section>
+
+                <!-- Too Late State -->
+                <section id="lateSection" hidden>
+                    <div class="warning-card">
+                        <div class="warning-icon">⚠️</div>
+                        <h3>Check-in Window Closed</h3>
+                        <p id="lateName"></p>
+                        <p class="warning-details">The check-in window closed at: <strong id="closedAt"></strong></p>
+                        <p class="warning-note">Please contact the coordinator if you need assistance.</p>
+                    </div>
+                </section>
+
+                <!-- Already Checked In -->
+                <section id="alreadySection" hidden>
+                    <div class="success-card">
+                        <div class="success-icon">✓</div>
+                        <h3>Already Checked In</h3>
+                        <p id="alreadyName"></p>
+                        <p id="alreadyTime" class="success-details"></p>
+                    </div>
+                </section>
+
+                <!-- Error State -->
+                <section id="errorSection" hidden>
+                    <div class="error-card">
+                        <div class="error-icon">⚠️</div>
+                        <h3 id="errorTitle">Error</h3>
+                        <p id="errorMessage"></p>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="container">
+                <p class="footer-text">Sri Thendayuthapani Temple — Volunteer Coordination</p>
+            </div>
+        </footer>
+    </div>
+
+    <script type="module" src="./src/checkin.js"></script>
+</body>
+
+</html>

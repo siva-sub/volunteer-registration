@@ -40,8 +40,12 @@ const state = {
 const elements = {
   // Common sections
   appContainer: document.getElementById('app'),
-  headerTitle: document.querySelector('.header-title'),
-  headerSubtitle: document.querySelector('.header-subtitle'),
+  eventListSection: document.getElementById('eventListSection'),
+  registrationSection: document.getElementById('registrationSection'),
+  publicEventsList: document.getElementById('publicEventsList'),
+  backToEventsLink: document.getElementById('backToEventsLink'),
+  headerTitle: document.querySelector('#registrationSection .header-title'),
+  headerSubtitle: document.querySelector('#registrationSection .header-subtitle'),
 
   // Navigation
   dateStrip: document.getElementById('dateStrip'),
@@ -163,6 +167,65 @@ function getShiftIcon(shiftName) {
 }
 
 // =====================================================
+// EVENT LIST (No event_id in URL)
+// =====================================================
+
+async function loadAndShowEventList() {
+  // Show event list section, hide registration
+  elements.eventListSection.hidden = false;
+  elements.registrationSection.hidden = true;
+
+  try {
+    const { data: events, error } = await supabase
+      .from('events')
+      .select('id, title, organization_name, dates_config, contact_person')
+      .eq('active', true)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    if (!events || events.length === 0) {
+      elements.publicEventsList.innerHTML = `
+        <div class="empty-state">
+          <p>No upcoming volunteer opportunities at this time.</p>
+          <p>Please check back later!</p>
+        </div>`;
+      return;
+    }
+
+    renderEventList(events);
+
+  } catch (error) {
+    console.error('Failed to load events:', error);
+    elements.publicEventsList.innerHTML = `
+      <div class="error-state">
+        <p>Unable to load events. Please try again later.</p>
+      </div>`;
+  }
+}
+
+function renderEventList(events) {
+  elements.publicEventsList.innerHTML = events.map(event => {
+    const dates = event.dates_config || {};
+    const dateRange = dates.start && dates.end
+      ? `${formatDate(dates.start)} – ${formatDate(dates.end)}`
+      : 'Dates TBA';
+
+    return `
+      <div class="event-list-card">
+        <div class="event-list-content">
+          <h3 class="event-list-title">${event.title}</h3>
+          <p class="event-list-org">${event.organization_name || 'Temple'}</p>
+          <p class="event-list-dates">📅 ${dateRange}</p>
+        </div>
+        <a href="?event_id=${event.id}" class="event-list-btn">Register →</a>
+      </div>
+    `;
+  }).join('');
+}
+
+// =====================================================
 // DATA FETCHING
 // =====================================================
 
@@ -174,19 +237,9 @@ async function loadEventData() {
     let eventId = new URLSearchParams(window.location.search).get('event_id');
 
     if (!eventId) {
-      // Need to find default/latest active event
-      const { data: events, error: fetchError } = await supabase
-        .from('events')
-        .select('id')
-        .eq('active', 'true')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (fetchError || !events || events.length === 0) {
-        throw new Error('No active events found.');
-      }
-      eventId = events[0].id;
+      // Show event list instead of registration form
+      await loadAndShowEventList();
+      return;
     }
 
     state.eventId = eventId;

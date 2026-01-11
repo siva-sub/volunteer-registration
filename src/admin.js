@@ -106,6 +106,19 @@ const elements = {
     // Reminders
     sendRemindersBtn: document.getElementById('sendRemindersBtn'),
     remindersStatus: document.getElementById('remindersStatus'),
+
+    // Slots Management
+    slotsListGrid: document.getElementById('slotsListGrid'),
+    addSlotBtn: document.getElementById('addSlotBtn'),
+    slotModal: document.getElementById('slotModal'),
+    slotModalClose: document.getElementById('slotModalClose'),
+    slotForm: document.getElementById('slotForm'),
+    slotDate: document.getElementById('slotDate'),
+    slotStartTime: document.getElementById('slotStartTime'),
+    slotEndTime: document.getElementById('slotEndTime'),
+    slotCapacity: document.getElementById('slotCapacity'),
+    slotStation: document.getElementById('slotStation'),
+    slotCancelBtn: document.getElementById('slotCancelBtn'),
 };
 
 // =====================================================
@@ -242,6 +255,7 @@ function renderEventsGrid() {
             <div class="event-card-actions">
                 <button class="action-btn action-btn--primary manage-event-btn">Manage</button>
                 <div class="event-card-secondary-actions">
+                    <button class="action-icon-btn pause-event-btn" title="${event.paused ? 'Unpause Event' : 'Pause Event'}">${event.paused ? '▶️' : '⏸️'}</button>
                     <button class="action-icon-btn edit-event-btn" title="Edit Event">✏️</button>
                     <button class="action-icon-btn delete-event-btn" title="Delete Event">🗑️</button>
                 </div>
@@ -268,6 +282,13 @@ function renderEventsGrid() {
         btn.addEventListener('click', (e) => {
             const card = e.target.closest('.event-card');
             handleDeleteEvent(card.dataset.id);
+        });
+    });
+
+    document.querySelectorAll('.pause-event-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const card = e.target.closest('.event-card');
+            handlePauseEvent(card.dataset.id);
         });
     });
 }
@@ -427,6 +448,33 @@ async function handleDeleteEvent(eventId) {
     }
 }
 
+async function handlePauseEvent(eventId) {
+    const event = state.events.find(e => e.id === eventId);
+    if (!event) return;
+
+    const action = event.paused ? 'unpause' : 'pause';
+    const confirmMsg = event.paused
+        ? 'Unpause this event? It will become visible to the public again.'
+        : 'Pause this event? New registrations will be temporarily disabled.';
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const { error } = await supabase.rpc('admin_update_event', {
+            p_password: ADMIN_PASSWORD,
+            p_event_id: eventId,
+            p_updates: { paused: !event.paused }
+        });
+
+        if (error) throw error;
+        await loadEvents();
+
+    } catch (e) {
+        console.error(e);
+        alert(`Failed to ${action} event: ` + e.message);
+    }
+}
+
 // =====================================================
 // DASHBOARD LOGIC (Single Event)
 // =====================================================
@@ -480,6 +528,7 @@ async function loadEventDetails(eventId) {
         renderDateFilter();
         renderTable();
         renderOverview();
+        renderSlots();
 
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -623,6 +672,121 @@ function renderOverview() {
         `;
     }).join('');
 }
+
+
+// =====================================================
+// SLOTS MANAGEMENT
+// =====================================================
+
+function renderSlots() {
+    const uniqueDates = [...new Set(state.slots.map(s => s.date))].sort();
+
+    if (state.slots.length === 0) {
+        elements.slotsListGrid.innerHTML = '<p class="empty-text">No slots created yet. Click "Add Slot" to create one.</p>';
+        return;
+    }
+
+    elements.slotsListGrid.innerHTML = uniqueDates.map(dateStr => {
+        const dateSlots = state.slots.filter(s => s.date === dateStr && !s.deleted_at);
+
+        const slotsHtml = dateSlots.map(slot => {
+            const stationBadge = slot.station ? `<span class="slot-badge">${slot.station}</span>` : '';
+            return `
+                <div class="slot-item" data-slot-id="${slot.id}">
+                    <div class="slot-info">
+                        <span class="slot-time">${formatTime(slot.start_time)} - ${formatTime(slot.end_time)}</span>
+                        ${stationBadge}
+                        <span class="slot-capacity">${slot.registered_count}/${slot.capacity}</span>
+                    </div>
+                    <button class="slot-delete-btn" onclick="window.handleDeleteSlot('${slot.id}')" title="Delete Slot">🗑️</button>
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="slots-date-group">
+                <div class="slots-date-header">${formatDateFull(dateStr)}</div>
+                <div class="slots-date-items">${slotsHtml}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+function openSlotModal() {
+    // Pre-fill with event dates if available
+    const event = state.events.find(e => e.id === state.activeEventId);
+    if (event?.dates_config?.start) {
+        elements.slotDate.value = event.dates_config.start;
+    }
+    elements.slotStartTime.value = '08:00';
+    elements.slotEndTime.value = '12:00';
+    elements.slotCapacity.value = 2;
+    elements.slotStation.value = '';
+
+    elements.slotModal.hidden = false;
+}
+
+function closeSlotModal() {
+    elements.slotModal.hidden = true;
+    elements.slotForm.reset();
+}
+
+async function handleAddSlot(e) {
+    e.preventDefault();
+
+    const slotData = {
+        event_id: state.activeEventId,
+        date: elements.slotDate.value,
+        shift_name: `${elements.slotStartTime.value} - ${elements.slotEndTime.value}`,
+        start_time: elements.slotStartTime.value,
+        end_time: elements.slotEndTime.value,
+        capacity: parseInt(elements.slotCapacity.value),
+        registered_count: 0,
+        station: elements.slotStation.value || null
+    };
+
+    try {
+        const { error } = await supabase.from('shift_slots').insert([slotData]);
+        if (error) throw error;
+
+        closeSlotModal();
+        await loadEventDetails(state.activeEventId);
+    } catch (error) {
+        console.error('Error adding slot:', error);
+        alert('Failed to add slot: ' + error.message);
+    }
+}
+
+async function handleDeleteSlot(slotId) {
+    const slot = state.slots.find(s => s.id === slotId);
+    if (!slot) return;
+
+    if (slot.registered_count > 0) {
+        if (!confirm(`This slot has ${slot.registered_count} registration(s). Deleting will affect those volunteers. Continue?`)) {
+            return;
+        }
+    } else {
+        if (!confirm('Delete this slot?')) return;
+    }
+
+    try {
+        // Soft delete
+        const { error } = await supabase
+            .from('shift_slots')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', slotId);
+
+        if (error) throw error;
+
+        await loadEventDetails(state.activeEventId);
+    } catch (error) {
+        console.error('Error deleting slot:', error);
+        alert('Failed to delete slot: ' + error.message);
+    }
+}
+
+// Expose to window for inline onclick
+window.handleDeleteSlot = handleDeleteSlot;
 
 
 // =====================================================
@@ -854,6 +1018,12 @@ function init() {
     elements.deleteModalClose.addEventListener('click', closeDeleteModal);
     elements.deleteCancelBtn.addEventListener('click', closeDeleteModal);
     elements.deleteConfirmBtn.addEventListener('click', handleConfirmDelete);
+
+    // Slot Modal
+    if (elements.addSlotBtn) elements.addSlotBtn.addEventListener('click', openSlotModal);
+    if (elements.slotModalClose) elements.slotModalClose.addEventListener('click', closeSlotModal);
+    if (elements.slotCancelBtn) elements.slotCancelBtn.addEventListener('click', closeSlotModal);
+    if (elements.slotForm) elements.slotForm.addEventListener('submit', handleAddSlot);
 }
 
 init();

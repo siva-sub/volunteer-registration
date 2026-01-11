@@ -515,6 +515,7 @@
     gap: var(--space-3);
     margin-top: var(--space-6);
 }
+
 .action-btn--danger {
     background: var(--color-error);
     border: 2px solid var(--color-error);
@@ -602,7 +603,8 @@
 }
 
 .event-status.inactive {
-    background: var(--color-text-muted); /* Fallback */
+    background: var(--color-text-muted);
+    /* Fallback */
     background: #f3f4f6;
     color: #6b7280;
 }
@@ -675,4 +677,97 @@
     border-radius: var(--radius-lg);
     color: var(--color-text-muted);
     font-size: var(--font-size-lg);
+}
+
+/* =====================================================
+   SLOTS MANAGEMENT
+   ===================================================== */
+.slots-section {
+    margin-bottom: var(--space-8);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+}
+
+.slots-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.slots-date-group {
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.slots-date-header {
+    font-weight: 600;
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-secondary-light);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.slots-date-items {
+    display: flex;
+    flex-direction: column;
+}
+
+.slot-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.slot-item:last-child {
+    border-bottom: none;
+}
+
+.slot-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.slot-time {
+    font-weight: 500;
+}
+
+.slot-badge {
+    background: var(--color-accent);
+    color: var(--color-white);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+}
+
+.slot-capacity {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+.slot-delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: var(--font-size-base);
+    opacity: 0.5;
+    transition: opacity var(--transition-fast);
+}
+
+.slot-delete-btn:hover {
+    opacity: 1;
+}
+
+.empty-text {
+    text-align: center;
+    color: var(--color-text-muted);
+    padding: var(--space-8);
 }
