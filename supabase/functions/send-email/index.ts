@@ -31,7 +31,8 @@ interface EmailRequest {
   name: string;
   email: string;
   slots: Slot[];
-  event_details?: EventDetails; // Optional for backward compatibility, but recommended
+  event_details?: EventDetails;
+  cancel_token?: string; // For self-service cancellation link
 }
 
 function formatTime(timeStr: string): string {
@@ -55,12 +56,13 @@ function sanitizeWhatsApp(number: string): string {
   return number.replace(/\D/g, '');
 }
 
-function generateConfirmationEmail(name: string, slots: Slot[], event: EventDetails): string {
+function generateConfirmationEmail(name: string, slots: Slot[], event: EventDetails, cancelToken?: string): string {
   const orgName = event.organization_name || 'Volunteer Organization';
   const eventTitle = event.title || 'Volunteer Event';
   const contactName = event.contact_person || 'the organizer';
   const contactWa = event.contact_whatsapp ? sanitizeWhatsApp(event.contact_whatsapp) : '';
   const contactLink = contactWa ? `https://wa.me/${contactWa}` : '#';
+  const cancelLink = cancelToken ? `https://siva-sub.github.io/volunteer-registration/cancel.html?token=${cancelToken}` : '';
 
   const shiftsHtml = slots.map(slot => `
     <tr>
@@ -127,8 +129,17 @@ function generateConfirmationEmail(name: string, slots: Slot[], event: EventDeta
             </p>
           </div>
           
+          ${cancelLink ? `
+          <div style="background: #FFF3E0; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+            <p style="color: #E65100; font-size: 14px; margin: 0;">
+              <strong>Need to cancel?</strong><br>
+              <a href="${cancelLink}" style="color: #E65100; font-weight: 600;">Click here to manage your registration</a>
+            </p>
+          </div>
+          ` : ''}
+          
           <p style="color: #6B5B4F; font-size: 14px; line-height: 1.6; margin: 0;">
-            If you need to make any changes to your registration, please contact ${contactName} at <a href="${contactLink}" style="color: #4A7C59; font-weight: 600;">${contactLink}</a>
+            If you need assistance, please contact ${contactName} at <a href="${contactLink}" style="color: #4A7C59; font-weight: 600;">${contactLink}</a>
           </p>
           
         </div>
@@ -229,7 +240,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, name, email, slots, event_details }: EmailRequest = await req.json();
+    const { type, name, email, slots, event_details, cancel_token }: EmailRequest = await req.json();
 
     if (!email || !name || !slots || slots.length === 0) {
       return new Response(
@@ -252,7 +263,7 @@ serve(async (req) => {
       : `Reminder: Your Shift for ${event.title} is Tomorrow`;
 
     const html = type === 'confirmation'
-      ? generateConfirmationEmail(name, slots, event)
+      ? generateConfirmationEmail(name, slots, event, cancel_token)
       : generateReminderEmail(name, slots, event);
 
     // Send via Resend API
