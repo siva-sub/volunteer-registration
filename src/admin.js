@@ -800,10 +800,15 @@ async function generateCustomSlots(eventId, startStr, endStr) {
     }
 
     if (slots.length > 0) {
-        const { error } = await supabase.from('shift_slots').insert(slots);
+        // Use RPC for bulk insert to bypass RLS
+        const { error } = await supabase.rpc('admin_create_slots', {
+            p_password: ADMIN_PASSWORD,
+            p_slots: slots
+        });
+
         if (error) {
             console.error('Error generating custom slots:', error);
-            alert('Event created but slots generation failed.');
+            alert('Event created but slots generation failed: ' + error.message);
         }
     }
 }
