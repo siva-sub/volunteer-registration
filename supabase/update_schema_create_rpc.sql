@@ -74,8 +74,8 @@ BEGIN
     p_coordinator_email,
     p_checkin_open_offset_minutes,
     p_checkin_close_offset_minutes,
-    p_registration_mode,
-    p_waitlist_mode,
+    p_registration_mode::registration_mode_enum,
+    p_waitlist_mode::waitlist_mode_enum,
     p_advanced_reporting_enabled,
     p_default_float_amount,
     p_is_hidden

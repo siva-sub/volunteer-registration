@@ -753,7 +753,7 @@ async function generateCustomSlots(eventId, startStr, endStr) {
     // Iterate dates
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         const dateStr = d.toISOString().split('T')[0];
-        const dayOfWeek = d.toLocaleDateString('en-US', { weekday: 'Long' });
+        const dayOfWeek = d.toLocaleDateString('en-US', { weekday: 'long' });
 
         stationCards.forEach(card => {
             const stationNameInput = card.querySelector('.station-title-input');
