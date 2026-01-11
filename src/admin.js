@@ -34,7 +34,10 @@ const state = {
     slots: [], // slots for active event
     selectedDateFilter: 'all',
     regIdToDelete: null,
-    editingEventId: null
+    editingEventId: null,
+    // Slot modal state
+    slotSalesItems: [], // sales items for current slot
+    selectedEmoji: '🎯' // selected station emoji
 };
 
 // =====================================================
@@ -120,12 +123,26 @@ const elements = {
     slotModal: document.getElementById('slotModal'),
     slotModalClose: document.getElementById('slotModalClose'),
     slotForm: document.getElementById('slotForm'),
+    slotName: document.getElementById('slotName'),
     slotDate: document.getElementById('slotDate'),
     slotStartTime: document.getElementById('slotStartTime'),
     slotEndTime: document.getElementById('slotEndTime'),
     slotCapacity: document.getElementById('slotCapacity'),
     slotStation: document.getElementById('slotStation'),
     slotCancelBtn: document.getElementById('slotCancelBtn'),
+    // New enhanced slot modal elements
+    emojiPickerBtn: document.getElementById('emojiPickerBtn'),
+    emojiPicker: document.getElementById('emojiPicker'),
+    salesItemsSection: document.getElementById('salesItemsSection'),
+    salesItemsList: document.getElementById('salesItemsList'),
+    addSalesItemBtn: document.getElementById('addSalesItemBtn'),
+    // Sales item modal
+    salesItemModal: document.getElementById('salesItemModal'),
+    salesItemModalClose: document.getElementById('salesItemModalClose'),
+    salesItemName: document.getElementById('salesItemName'),
+    salesItemPrice: document.getElementById('salesItemPrice'),
+    salesItemCancelBtn: document.getElementById('salesItemCancelBtn'),
+    salesItemAddBtn: document.getElementById('salesItemAddBtn'),
 };
 
 // =====================================================
@@ -816,8 +833,18 @@ function openSlotModal() {
     }
     elements.slotStartTime.value = '08:00';
     elements.slotEndTime.value = '12:00';
-    elements.slotCapacity.value = 2;
+    elements.slotCapacity.value = 10;
     elements.slotStation.value = '';
+
+    // Reset new fields
+    if (elements.slotName) elements.slotName.value = '';
+    state.slotSalesItems = [];
+    state.selectedEmoji = '🎯';
+    if (elements.emojiPickerBtn) elements.emojiPickerBtn.textContent = '🎯';
+    if (elements.emojiPicker) elements.emojiPicker.hidden = true;
+    if (elements.salesItemsSection) elements.salesItemsSection.hidden = true;
+    document.querySelector('input[name="slotType"][value="standard"]')?.click();
+    renderSalesItemsList();
 
     elements.slotModal.hidden = false;
 }
@@ -827,18 +854,76 @@ function closeSlotModal() {
     elements.slotForm.reset();
 }
 
+// Sales Item Modal
+function openSalesItemModal() {
+    if (elements.salesItemName) elements.salesItemName.value = '';
+    if (elements.salesItemPrice) elements.salesItemPrice.value = '0.00';
+    if (elements.salesItemModal) elements.salesItemModal.hidden = false;
+}
+
+function closeSalesItemModal() {
+    if (elements.salesItemModal) elements.salesItemModal.hidden = true;
+}
+
+function handleAddSalesItem() {
+    const name = elements.salesItemName.value.trim();
+    const price = parseFloat(elements.salesItemPrice.value) || 0;
+
+    if (!name) {
+        alert('Please enter an item name');
+        return;
+    }
+
+    state.slotSalesItems.push({ name, unit_price: price });
+    renderSalesItemsList();
+    closeSalesItemModal();
+}
+
+function renderSalesItemsList() {
+    if (!elements.salesItemsList) return;
+
+    if (state.slotSalesItems.length === 0) {
+        elements.salesItemsList.innerHTML = '<p class="sales-items-empty">No items yet. Add items being sold.</p>';
+        return;
+    }
+
+    elements.salesItemsList.innerHTML = state.slotSalesItems.map((item, i) => `
+        <div class="sales-item-row">
+            <div class="sales-item-info">
+                <span class="sales-item-name">${item.name}</span>
+                <span class="sales-item-price">$${item.unit_price.toFixed(2)}</span>
+            </div>
+            <button type="button" class="sales-item-remove" onclick="removeSalesItem(${i})">×</button>
+        </div>
+    `).join('');
+}
+
+// Make available globally for onclick
+window.removeSalesItem = function (index) {
+    state.slotSalesItems.splice(index, 1);
+    renderSalesItemsList();
+};
+
 async function handleAddSlot(e) {
     e.preventDefault();
+
+    const slotType = document.querySelector('input[name="slotType"]:checked')?.value || 'standard';
+    const stationValue = elements.slotStation.value.trim();
+    const station = stationValue ? `${state.selectedEmoji} ${stationValue}` : null;
 
     const slotData = {
         event_id: state.activeEventId,
         date: elements.slotDate.value,
-        shift_name: `${elements.slotStartTime.value} - ${elements.slotEndTime.value}`,
+        shift_name: elements.slotName?.value.trim() || `${elements.slotStartTime.value} - ${elements.slotEndTime.value}`,
         start_time: elements.slotStartTime.value,
         end_time: elements.slotEndTime.value,
         capacity: parseInt(elements.slotCapacity.value),
         registered_count: 0,
-        station: elements.slotStation.value || null
+        station: station,
+        slot_type: slotType,
+        sales_config: slotType === 'sales' && state.slotSalesItems.length > 0
+            ? { items: state.slotSalesItems }
+            : null
     };
 
     try {
@@ -1120,6 +1205,33 @@ function init() {
     if (elements.slotModalClose) elements.slotModalClose.addEventListener('click', closeSlotModal);
     if (elements.slotCancelBtn) elements.slotCancelBtn.addEventListener('click', closeSlotModal);
     if (elements.slotForm) elements.slotForm.addEventListener('submit', handleAddSlot);
+
+    // Emoji Picker
+    if (elements.emojiPickerBtn) {
+        elements.emojiPickerBtn.addEventListener('click', () => {
+            elements.emojiPicker.hidden = !elements.emojiPicker.hidden;
+        });
+    }
+    document.querySelectorAll('.emoji-option').forEach(opt => {
+        opt.addEventListener('click', (e) => {
+            state.selectedEmoji = e.target.dataset.emoji;
+            elements.emojiPickerBtn.textContent = state.selectedEmoji;
+            elements.emojiPicker.hidden = true;
+        });
+    });
+
+    // Slot Type Toggle
+    document.querySelectorAll('input[name="slotType"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            elements.salesItemsSection.hidden = e.target.value !== 'sales';
+        });
+    });
+
+    // Sales Item Modal
+    if (elements.addSalesItemBtn) elements.addSalesItemBtn.addEventListener('click', openSalesItemModal);
+    if (elements.salesItemModalClose) elements.salesItemModalClose.addEventListener('click', closeSalesItemModal);
+    if (elements.salesItemCancelBtn) elements.salesItemCancelBtn.addEventListener('click', closeSalesItemModal);
+    if (elements.salesItemAddBtn) elements.salesItemAddBtn.addEventListener('click', handleAddSalesItem);
 }
 
 init();
