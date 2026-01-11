@@ -338,13 +338,19 @@
 
         <!-- Add Slot Modal -->
         <div class="modal-overlay" id="slotModal" hidden>
-            <div class="modal">
+            <div class="modal modal--wide">
                 <div class="modal-header">
                     <h3 class="modal-title">Add Slot</h3>
                     <button class="modal-close" id="slotModalClose">&times;</button>
                 </div>
                 <div class="modal-body">
                     <form id="slotForm">
+                        <!-- Basic Info -->
+                        <div class="form-group">
+                            <label for="slotName" class="form-label">Shift Name</label>
+                            <input type="text" id="slotName" class="form-input"
+                                placeholder="e.g., Morning Help, Milk Counter" required>
+                        </div>
                         <div class="form-group">
                             <label for="slotDate" class="form-label">Date</label>
                             <input type="date" id="slotDate" class="form-input" required>
@@ -359,22 +365,99 @@
                                 <input type="time" id="slotEndTime" class="form-input" required>
                             </div>
                         </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="slotCapacity" class="form-label">Capacity</label>
-                                <input type="number" id="slotCapacity" class="form-input" min="1" value="2" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="slotStation" class="form-label">Station (optional)</label>
-                                <input type="text" id="slotStation" class="form-input" placeholder="e.g., Main Gate">
-                            </div>
+                        <div class="form-group">
+                            <label for="slotCapacity" class="form-label">Capacity</label>
+                            <input type="number" id="slotCapacity" class="form-input" min="1" value="10" required>
                         </div>
+
+                        <!-- Advanced Options (collapsible) -->
+                        <details class="form-details">
+                            <summary class="form-details-toggle">▼ More Options</summary>
+
+                            <!-- Station with Emoji -->
+                            <div class="form-group" style="margin-top: 16px;">
+                                <label class="form-label">Station (optional)</label>
+                                <div class="station-input-row">
+                                    <button type="button" class="emoji-picker-btn" id="emojiPickerBtn">🎯</button>
+                                    <input type="text" id="slotStation" class="form-input"
+                                        placeholder="e.g., Kitchen, Registration">
+                                </div>
+                                <div class="emoji-picker" id="emojiPicker" hidden>
+                                    <span class="emoji-option" data-emoji="🍳">🍳</span>
+                                    <span class="emoji-option" data-emoji="🍽️">🍽️</span>
+                                    <span class="emoji-option" data-emoji="🥛">🥛</span>
+                                    <span class="emoji-option" data-emoji="📦">📦</span>
+                                    <span class="emoji-option" data-emoji="📋">📋</span>
+                                    <span class="emoji-option" data-emoji="💰">💰</span>
+                                    <span class="emoji-option" data-emoji="🧹">🧹</span>
+                                    <span class="emoji-option" data-emoji="🩹">🩹</span>
+                                    <span class="emoji-option" data-emoji="📷">📷</span>
+                                    <span class="emoji-option" data-emoji="🎤">🎤</span>
+                                    <span class="emoji-option" data-emoji="🚶">🚶</span>
+                                    <span class="emoji-option" data-emoji="👥">👥</span>
+                                    <span class="emoji-option" data-emoji="🎨">🎨</span>
+                                    <span class="emoji-option" data-emoji="🧼">🧼</span>
+                                </div>
+                            </div>
+
+                            <!-- Slot Type -->
+                            <div class="form-group">
+                                <label class="form-label">Slot Type</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="slotType" value="standard" checked>
+                                        Standard (check-in only)
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="slotType" value="sales">
+                                        Sales (volunteers report amounts)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Sales Items (shown when sales selected) -->
+                            <div class="form-group" id="salesItemsSection" hidden>
+                                <label class="form-label">Sales Items</label>
+                                <div id="salesItemsList" class="sales-items-list">
+                                    <p class="sales-items-empty">No items yet. Add items being sold.</p>
+                                </div>
+                                <button type="button" class="action-btn action-btn--secondary" id="addSalesItemBtn">
+                                    + Add Item
+                                </button>
+                            </div>
+                        </details>
+
                         <div class="modal-actions">
                             <button type="button" class="action-btn action-btn--secondary"
                                 id="slotCancelBtn">Cancel</button>
                             <button type="submit" class="action-btn action-btn--primary">Add Slot</button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Sales Item Mini Modal -->
+        <div class="modal-overlay" id="salesItemModal" hidden>
+            <div class="modal modal--small">
+                <div class="modal-header">
+                    <h3 class="modal-title">Add Sales Item</h3>
+                    <button class="modal-close" id="salesItemModalClose">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="salesItemName" class="form-label">Item Name</label>
+                        <input type="text" id="salesItemName" class="form-input" placeholder="e.g., Milk Packet 1L">
+                    </div>
+                    <div class="form-group">
+                        <label for="salesItemPrice" class="form-label">Unit Price ($)</label>
+                        <input type="number" id="salesItemPrice" class="form-input" min="0" step="0.01" value="0.00">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="action-btn action-btn--secondary"
+                            id="salesItemCancelBtn">Cancel</button>
+                        <button type="button" class="action-btn action-btn--primary" id="salesItemAddBtn">Add</button>
+                    </div>
                 </div>
             </div>
         </div>
