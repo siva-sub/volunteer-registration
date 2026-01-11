@@ -56,6 +56,24 @@
                 <!-- Multiple Results Section -->
                 <section id="resultsSection" hidden>
                     <div class="manage-card">
+                        <div class="manage-header">
+                            <h2 id="resultsCount">Found Registrations</h2>
+                            <p>Select one to manage your shifts:</p>
+                        </div>
+                        <div id="resultsList" class="results-list">
+                            <!-- Results will be inserted here -->
+                        </div>
+                        <div class="cancel-actions">
+                            <button type="button" class="action-btn action-btn--secondary" id="backToSearchBtn">Back to
+                                Search</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Error State -->
+                <section id="errorSection" hidden>
+                    <div class="error-card">
+                        <div class="error-icon">⚠️</div>
                         <h3 id="errorTitle">Link Invalid</h3>
                         <p id="errorMessage">This link is no longer valid or has expired.</p>
                         <a href="/" class="action-btn action-btn--primary">Return to Home</a>
