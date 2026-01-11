@@ -51,6 +51,13 @@ const elements = {
   headerTitle: document.querySelector('#registrationSection .header-title'),
   headerSubtitle: document.querySelector('#registrationSection .header-subtitle'),
 
+  // Intro Card
+  introCard: document.getElementById('introCard'),
+  introTitle: document.getElementById('introTitle'),
+  introText: document.getElementById('introText'),
+  introDetails: document.getElementById('introDetails'),
+  introNote: document.getElementById('introNote'),
+
   // Navigation
   dateStrip: document.getElementById('dateStrip'),
   datePrev: document.getElementById('datePrev'),
@@ -267,6 +274,7 @@ async function loadEventData() {
     state.slots = data.slots || [];
 
     updatePageMetadata();
+    renderIntroCard(); // Populate dynamic intro
 
     state.isLoading = false;
 
@@ -928,5 +936,99 @@ async function handleWaitlistSubmit(e) {
     btn.disabled = false;
   }
 }
+
+// =====================================================
+// DYNAMIC INTRO CARD
+// =====================================================
+
+function renderIntroCard() {
+  if (!state.event) return;
+
+  const event = state.event;
+
+  // 1. Title
+  if (elements.introTitle) {
+    elements.introTitle.innerText = `${event.title} Volunteer Sign-up`;
+  }
+
+  // 2. Text
+  if (elements.introText) {
+    const dates = event.dates_config || {};
+    const dateRange = dates.start && dates.end
+      ? `${formatDateLong(dates.start)} – ${formatDateLong(dates.end)}`
+      : 'Upcoming Dates';
+
+    elements.introText.innerHTML = `
+        Thank you for your interest in serving at <strong>${event.organization_name || 'the temple'}</strong> 
+        during <strong>${dateRange}</strong>. 
+        ${event.description || 'Volunteers help serve devotees — a meaningful act of service.'}
+      `;
+  }
+
+  // 3. Shifts Details
+  if (elements.introDetails) {
+    // Analyze slots to find unique shift patterns (Start-End)
+    const shiftPatterns = new Map();
+
+    // We want to find unique shift names + times
+    // Use state.slots which should be populated by now
+    (state.slots || []).forEach(slot => {
+      // Create a unique key for grouping same-named shifts at same times
+      // key: "Name|Start|End"
+      const key = `${slot.shift_name}|${slot.start_time}|${slot.end_time}`;
+      if (!shiftPatterns.has(key)) {
+        shiftPatterns.set(key, {
+          name: slot.shift_name, // e.g., "Morning Shift"
+          start: slot.start_time,
+          end: slot.end_time,
+          icon: getShiftIcon(slot.shift_name)
+        });
+      }
+    });
+
+    const patterns = Array.from(shiftPatterns.values());
+
+    // Sort by start time
+    patterns.sort((a, b) => a.start.localeCompare(b.start));
+
+    if (patterns.length > 0) {
+      elements.introDetails.innerHTML = patterns.map(p => `
+            <div class="intro-detail">
+              <span class="detail-icon">${p.icon}</span>
+              <div>
+                <strong>${p.name}</strong>
+                <span>${formatTime(p.start)} – ${formatTime(p.end)}</span>
+              </div>
+            </div>
+          `).join('');
+    } else {
+      elements.introDetails.innerHTML = '<p class="text-sm text-gray-500"><em>No shifts configured yet.</em></p>';
+    }
+  }
+
+  // 4. Note (Capacity)
+  if (elements.introNote) {
+    // Find max capacity?
+    const maxCap = (state.slots || []).length > 0
+      ? Math.max(...state.slots.map(s => s.capacity))
+      : 2; // Default to 2 if no slots
+
+    elements.introNote.innerHTML = `
+        Each shift can accommodate up to <strong>${maxCap} volunteers</strong>.
+        You may sign up for multiple shifts across different days.
+      `;
+  }
+}
+
+function formatDateLong(dateStr) {
+  if (!dateStr) return '';
+  try {
+    return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+
 
 init();
