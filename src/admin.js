@@ -804,37 +804,7 @@ function initScheduleBuilder() {
     if (defaultStation) attachStationListeners(defaultStation);
 }
 
-function addStationWithShifts(stationName, shifts) {
-    const clone = document.createElement('div');
-    clone.className = 'station-card';
-    clone.innerHTML = `
-        <div class="station-header">
-            <input type="text" class="station-title-input" value="${stationName === 'General Volunteers' ? '' : stationName}" placeholder="Station Name">
-            <div class="station-actions">
-                <button type="button" class="add-shift-btn action-btn action-btn--secondary action-btn--sm">+ Add Shift</button>
-                <button type="button" class="remove-station-btn action-btn action-btn--danger action-btn--sm">Remove Station</button>
-            </div>
-        </div>
-        <div class="shift-list">
-             <div class="shift-row" style="background: transparent; border: none; padding: 0;">
-                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">Shift Name</span>
-                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">Start</span>
-                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">End</span>
-                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">Slots</span>
-                <span></span>
-            </div>
-        </div>
-    `;
 
-    const shiftList = clone.querySelector('.shift-list');
-
-    shifts.forEach(s => {
-        addShiftRowWithData(shiftList, s);
-    });
-
-    elements.stationsContainer.appendChild(clone);
-    attachStationListeners(clone);
-}
 
 // Helper to toggle sales section
 function toggleSalesSection(btn) {
