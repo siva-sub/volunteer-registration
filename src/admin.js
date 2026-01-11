@@ -768,38 +768,8 @@ function initScheduleBuilder() {
         });
     }
 
-    // Customize Template
-    if (elements.customizeTemplateBtn) {
-        elements.customizeTemplateBtn.addEventListener('click', () => {
-            const templateId = elements.eventTemplate.value;
-            if (!templateId) return;
-
-            const template = state.templates.find(t => t.id === templateId);
-            if (!template) return;
-
-            // 1. Switch to Custom Mode
-            elements.modeCustomBtn.click();
-
-            // 2. Clear existing stations
-            elements.stationsContainer.innerHTML = '';
-
-            // 3. Parse Template Slots and Group by Station
-            const slotConfig = template.slot_config?.slots || [];
-            const stations = {};
-
-            // Group
-            slotConfig.forEach(slot => {
-                const stName = slot.station || 'General Volunteers';
-                if (!stations[stName]) stations[stName] = [];
-                stations[stName].push(slot);
-            });
-
-            // 4. Create Station Cards
-            Object.keys(stations).forEach(stName => {
-                addStationWithShifts(stName, stations[stName]);
-            });
-        });
-    }
+    // Customize Template listener is now handled in init() with populateScheduleBuilderFromTemplate
+    // Removed duplicate logic here to prevent conflicts.
 
     // Initial listeners for default station
     const defaultStation = elements.stationsContainer.querySelector('.station-card');
