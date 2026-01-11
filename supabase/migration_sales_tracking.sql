@@ -5,6 +5,14 @@
 -- Add coordinator email to events for reminders
 ALTER TABLE events ADD COLUMN IF NOT EXISTS coordinator_email TEXT;
 
+-- Waitlist feature toggle
+ALTER TABLE events ADD COLUMN IF NOT EXISTS waitlist_enabled BOOLEAN DEFAULT FALSE;
+
+-- Check-in configuration on events (defaults for all slots)
+ALTER TABLE events ADD COLUMN IF NOT EXISTS checkin_window_mode TEXT DEFAULT 'auto'; -- 'auto' or 'custom'
+ALTER TABLE events ADD COLUMN IF NOT EXISTS checkin_open_offset_minutes INTEGER DEFAULT 30;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS checkin_close_offset_minutes INTEGER DEFAULT 120;
+
 -- Add slot type and sales configuration to shift_slots
 ALTER TABLE shift_slots ADD COLUMN IF NOT EXISTS slot_type TEXT DEFAULT 'standard';
 -- slot_type: 'standard' (check-in only), 'sales' (requires report), 'inventory' (track quantities)
@@ -18,6 +26,10 @@ ALTER TABLE shift_slots ADD COLUMN IF NOT EXISTS report_required BOOLEAN DEFAULT
 
 -- Float (initial cash) for sales slots
 ALTER TABLE shift_slots ADD COLUMN IF NOT EXISTS float_amount DECIMAL(10,2);
+
+-- Per-slot check-in override (optional custom window)
+ALTER TABLE shift_slots ADD COLUMN IF NOT EXISTS checkin_open_at TIMESTAMPTZ;
+ALTER TABLE shift_slots ADD COLUMN IF NOT EXISTS checkin_close_at TIMESTAMPTZ;
 
 -- Shift leader designation
 ALTER TABLE registration_slots ADD COLUMN IF NOT EXISTS is_shift_leader BOOLEAN DEFAULT FALSE;
@@ -233,3 +245,129 @@ INSERT INTO event_templates (name, category, description, icon, slot_config, def
 '{"checkin_required": true, "feedback_enabled": false, "certificates_enabled": false}')
 
 ON CONFLICT DO NOTHING;
+
+-- =====================================================
+-- RPC: Enforce Check-in (with window validation)
+-- =====================================================
+CREATE OR REPLACE FUNCTION enforce_check_in(p_token UUID)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_reg_slot RECORD;
+  v_slot RECORD;
+  v_event RECORD;
+  v_open_at TIMESTAMPTZ;
+  v_close_at TIMESTAMPTZ;
+BEGIN
+  -- Find registration slot by checkin token
+  SELECT rs.*, r.full_name
+  INTO v_reg_slot
+  FROM registration_slots rs
+  JOIN registrations r ON r.id = rs.registration_id
+  WHERE rs.checkin_token = p_token;
+  
+  IF v_reg_slot IS NULL THEN
+    RETURN json_build_object('success', false, 'error', 'Invalid token', 'status', 'invalid');
+  END IF;
+  
+  -- Already checked in?
+  IF v_reg_slot.checked_in_at IS NOT NULL THEN
+    RETURN json_build_object('success', true, 'status', 'already_checked_in', 'checked_in_at', v_reg_slot.checked_in_at);
+  END IF;
+  
+  -- Get slot and event
+  SELECT * INTO v_slot FROM shift_slots WHERE id = v_reg_slot.slot_id;
+  SELECT * INTO v_event FROM events WHERE id = v_slot.event_id;
+  
+  -- Check if check-in is required
+  IF NOT COALESCE(v_event.checkin_required, true) THEN
+    RETURN json_build_object('success', true, 'status', 'not_required');
+  END IF;
+  
+  -- Compute check-in window
+  IF v_slot.checkin_open_at IS NOT NULL AND v_slot.checkin_close_at IS NOT NULL THEN
+    -- Custom window on slot
+    v_open_at := v_slot.checkin_open_at;
+    v_close_at := v_slot.checkin_close_at;
+  ELSE
+    -- Auto window from event settings
+    v_open_at := (v_slot.date || ' ' || v_slot.start_time)::TIMESTAMPTZ 
+                 - (COALESCE(v_event.checkin_open_offset_minutes, 30) * INTERVAL '1 minute');
+    v_close_at := (v_slot.date || ' ' || v_slot.start_time)::TIMESTAMPTZ 
+                  + (COALESCE(v_event.checkin_close_offset_minutes, 120) * INTERVAL '1 minute');
+  END IF;
+  
+  -- Validate window
+  IF NOW() < v_open_at THEN
+    RETURN json_build_object('success', false, 'status', 'too_early', 
+                             'opens_at', v_open_at, 'message', 'Check-in not yet open');
+  END IF;
+  
+  IF NOW() > v_close_at THEN
+    RETURN json_build_object('success', false, 'status', 'too_late', 
+                             'closed_at', v_close_at, 'message', 'Check-in window has closed');
+  END IF;
+  
+  -- Mark as checked in
+  UPDATE registration_slots SET checked_in_at = NOW() WHERE id = v_reg_slot.id;
+  
+  RETURN json_build_object('success', true, 'status', 'checked_in', 
+                           'volunteer_name', v_reg_slot.full_name);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION enforce_check_in(UUID) TO anon;
+GRANT EXECUTE ON FUNCTION enforce_check_in(UUID) TO service_role;
+
+-- =====================================================
+-- RPC: Join Waitlist
+-- =====================================================
+CREATE OR REPLACE FUNCTION join_waitlist(
+  p_slot_id UUID,
+  p_full_name TEXT,
+  p_phone TEXT,
+  p_email TEXT DEFAULT NULL
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_slot RECORD;
+  v_event RECORD;
+  v_position INTEGER;
+BEGIN
+  -- Get slot and event
+  SELECT * INTO v_slot FROM shift_slots WHERE id = p_slot_id;
+  IF v_slot IS NULL THEN
+    RETURN json_build_object('success', false, 'error', 'Slot not found');
+  END IF;
+  
+  SELECT * INTO v_event FROM events WHERE id = v_slot.event_id;
+  
+  -- Check if waitlist is enabled
+  IF NOT COALESCE(v_event.waitlist_enabled, false) THEN
+    RETURN json_build_object('success', false, 'error', 'Waitlist not enabled for this event');
+  END IF;
+  
+  -- Check if slot is actually full
+  IF v_slot.registered_count < v_slot.capacity THEN
+    RETURN json_build_object('success', false, 'error', 'Slot still has availability');
+  END IF;
+  
+  -- Get next position
+  SELECT COALESCE(MAX(position), 0) + 1 INTO v_position FROM waitlist WHERE slot_id = p_slot_id;
+  
+  -- Add to waitlist
+  INSERT INTO waitlist (slot_id, event_id, full_name, phone, email, position)
+  VALUES (p_slot_id, v_slot.event_id, p_full_name, p_phone, p_email, v_position);
+  
+  RETURN json_build_object('success', true, 'position', v_position, 
+                           'message', 'Added to waitlist at position ' || v_position);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION join_waitlist(UUID, TEXT, TEXT, TEXT) TO anon;
+GRANT EXECUTE ON FUNCTION join_waitlist(UUID, TEXT, TEXT, TEXT) TO service_role;
