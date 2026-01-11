@@ -100,6 +100,7 @@ const elements = {
     checkinRequired: document.getElementById('checkinRequired'),
     waitlistEnabled: document.getElementById('waitlistEnabled'),
     eventPaused: document.getElementById('eventPaused'),
+    eventHidden: document.getElementById('eventHidden'),
     eventCancelBtn: document.getElementById('eventCancelBtn'),
 
     // Edit Registration Modal
@@ -613,7 +614,8 @@ async function handleCreateEventSubmit(e) {
                     checkin_close_offset_minutes: parseInt(elements.checkinCloseOffset?.value) || 30,
                     registration_mode: document.querySelector('input[name="registrationMode"]:checked')?.value || 'instant',
                     waitlist_mode: document.querySelector('input[name="waitlistMode"]:checked')?.value || 'manual',
-                    advanced_reporting_enabled: document.getElementById('advancedReportingEnabled')?.checked || false
+                    advanced_reporting_enabled: document.getElementById('advancedReportingEnabled')?.checked || false,
+                    is_hidden: elements.eventHidden?.checked || false
                 })
                 .select()
                 .single();

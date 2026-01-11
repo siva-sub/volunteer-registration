@@ -187,9 +187,10 @@ async function loadAndShowEventList() {
   try {
     const { data: events, error } = await supabase
       .from('events')
-      .select('id, title, organization_name, dates_config, contact_person')
+      .select('id, title, organization_name, dates_config, contact_person, is_hidden')
       .eq('active', true)
       .is('deleted_at', null)
+      .or('is_hidden.is.null,is_hidden.eq.false')
       .order('created_at', { ascending: false });
 
     if (error) throw error;

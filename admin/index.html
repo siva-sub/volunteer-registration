@@ -376,28 +376,32 @@
                 <div class="modal-body">
                     <form id="eventForm">
                         <div class="form-group">
-                            <label for="eventTitle" class="form-label">Event Title</label>
+                            <label for="eventTitle" class="form-label">Event Title <span
+                                    class="required-star">*</span></label>
                             <input type="text" id="eventTitle" class="form-input"
                                 placeholder="e.g. Panguni Uthiram 2026" required>
                         </div>
                         <div class="form-group">
-                            <label for="orgName" class="form-label">Organization Name</label>
+                            <label for="orgName" class="form-label">Organization Name <span
+                                    class="required-star">*</span></label>
                             <input type="text" id="orgName" class="form-input" value="Sri Thendayuthapani Temple"
                                 required>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="contactPerson" class="form-label">Contact Person</label>
+                                <label for="contactPerson" class="form-label">Contact Person <span
+                                        class="required-star">*</span></label>
                                 <input type="text" id="contactPerson" class="form-input" placeholder="Name" required>
                             </div>
                             <div class="form-group">
-                                <label for="contactWhatsapp" class="form-label">WhatsApp Number</label>
+                                <label for="contactWhatsapp" class="form-label">WhatsApp Number <span
+                                        class="required-star">*</span></label>
                                 <input type="tel" id="contactWhatsapp" class="form-input" placeholder="e.g. 6591234567"
                                     required>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label-md">Event Dates</label>
+                            <label class="form-label-md">Event Dates <span class="required-star">*</span></label>
                             <div class="dates-input-group">
                                 <input type="date" id="eventStartDate" class="form-input" required>
                                 <span>to</span>
@@ -526,57 +530,100 @@
                             </div>
                         </div>
 
-                        <!-- Settings & Advanced (Simplified) -->
-                        <div class="form-group"
-                            style="background: var(--color-surface-alt); padding: var(--space-4); border-radius: var(--radius-lg); margin-top: var(--space-6);">
-                            <label class="form-label">Settings</label>
-                            <div class="form-checkboxes" style="margin-bottom: var(--space-3);">
-                                <label class="checkbox-label"><input type="checkbox" id="feedbackEnabled" checked>
-                                    <span>Collect Feedback</span></label>
-                                <label class="checkbox-label"><input type="checkbox" id="checkinRequired" checked>
-                                    <span>Require Check-in</span></label>
-                                <label class="checkbox-label"><input type="checkbox" id="waitlistEnabled"> <span>Enable
-                                        Waitlist</span></label>
-                                <label class="checkbox-label"><input type="checkbox" id="eventPaused"> <span>Start
-                                        Paused</span></label>
+                        <!-- Settings & Advanced -->
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <span class="section-icon">⚙️</span> Event Settings
                             </div>
 
-                            <hr style="border: 0; border-top: 1px solid var(--color-border); margin: var(--space-3) 0;">
+                            <div class="checkbox-group">
+                                <label class="checkbox-item">
+                                    <input type="checkbox" id="feedbackEnabled" checked>
+                                    <div class="checkbox-item-content">
+                                        <span class="checkbox-item-label">Collect Feedback</span>
+                                        <span class="checkbox-item-desc">Ask volunteers for ratings & comments after
+                                            their shift</span>
+                                    </div>
+                                </label>
 
-                            <!-- Mode (Radio) -->
-                            <div style="display: flex; gap: var(--space-4);">
+                                <label class="checkbox-item">
+                                    <input type="checkbox" id="checkinRequired" checked>
+                                    <div class="checkbox-item-content">
+                                        <span class="checkbox-item-label">Require Check-in</span>
+                                        <span class="checkbox-item-desc">Volunteers must check in via link before their
+                                            shift starts</span>
+                                    </div>
+                                </label>
+
+                                <label class="checkbox-item">
+                                    <input type="checkbox" id="waitlistEnabled">
+                                    <div class="checkbox-item-content">
+                                        <span class="checkbox-item-label">Enable Waitlist</span>
+                                        <span class="checkbox-item-desc">Allow volunteers to join waitlist when slots
+                                            are full</span>
+                                    </div>
+                                </label>
+
+                                <label class="checkbox-item">
+                                    <input type="checkbox" id="eventPaused">
+                                    <div class="checkbox-item-content">
+                                        <span class="checkbox-item-label">Start Paused</span>
+                                        <span class="checkbox-item-desc">Event visible but registration temporarily
+                                            disabled</span>
+                                    </div>
+                                </label>
+
+                                <label class="checkbox-item">
+                                    <input type="checkbox" id="eventHidden">
+                                    <div class="checkbox-item-content">
+                                        <span class="checkbox-item-label">Private Event (Hidden)</span>
+                                        <span class="checkbox-item-desc">Hidden from public listing. Only accessible via
+                                            direct link.</span>
+                                    </div>
+                                </label>
+
+                                <label class="checkbox-item">
+                                    <input type="checkbox" id="advancedReportingEnabled">
+                                    <div class="checkbox-item-content">
+                                        <span class="checkbox-item-label">Advanced Sales Tracking</span>
+                                        <span class="checkbox-item-desc">Track cash collection, starting float, and
+                                            per-volunteer sales reporting</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div style="display: flex; gap: var(--space-4); margin-top: var(--space-4);">
                                 <div style="flex: 1;">
-                                    <label class="form-label" style="font-size: 0.8rem;">Registration</label>
-                                    <select name="registrationMode" class="form-select form-select--sm">
+                                    <label class="form-label">Registration Mode</label>
+                                    <select name="registrationMode" class="form-select">
                                         <option value="instant">Instant Booking</option>
                                         <option value="approval">Approval Required</option>
                                     </select>
+                                    <span class="form-hint">How volunteers join your event</span>
                                 </div>
                                 <div style="flex: 1;">
-                                    <label class="form-label" style="font-size: 0.8rem;">Waitlist</label>
-                                    <select name="waitlistMode" class="form-select form-select--sm">
+                                    <label class="form-label">Waitlist Mode</label>
+                                    <select name="waitlistMode" class="form-select">
                                         <option value="manual">Manual Promote</option>
                                         <option value="auto">Auto Promote</option>
                                     </select>
+                                    <span class="form-hint">How waitlisted volunteers are moved to slots</span>
                                 </div>
                             </div>
-                            <!-- Check-in Window -->
-                            <div style="margin-top: var(--space-3);">
-                                <label class="checkbox-label" style="margin-bottom: var(--space-2); display: block;">
-                                    <input type="checkbox" id="advancedReportingEnabled">
-                                    <span>Advanced Sales Reporting (Cash Handler, Float)</span>
-                                </label>
 
-                                <label class="form-label" style="font-size: 0.8rem;">Check-in Window (Minutes)</label>
+                            <!-- Check-in Window -->
+                            <div style="margin-top: var(--space-4);">
+                                <label class="form-label">Check-in Window</label>
                                 <div style="display: flex; gap: var(--space-2); align-items: center;">
-                                    <input type="number" id="checkinOpenOffset" class="form-input form-input--sm"
-                                        style="width: 80px;" value="30">
-                                    <span style="font-size: 0.8rem; color: var(--color-text-muted);">before</span>
+                                    <input type="number" id="checkinOpenOffset" class="form-input" style="width: 80px;"
+                                        value="30">
+                                    <span class="form-hint">minutes before</span>
                                     <span style="color: var(--color-border);">|</span>
-                                    <input type="number" id="checkinCloseOffset" class="form-input form-input--sm"
-                                        style="width: 80px;" value="120">
-                                    <span style="font-size: 0.8rem; color: var(--color-text-muted);">after</span>
+                                    <input type="number" id="checkinCloseOffset" class="form-input" style="width: 80px;"
+                                        value="120">
+                                    <span class="form-hint">minutes after</span>
                                 </div>
+                                <span class="form-hint">When volunteers can check in relative to shift start</span>
                             </div>
                         </div>
 
