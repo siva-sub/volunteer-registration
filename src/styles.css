@@ -1690,3 +1690,92 @@ a:hover {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+/* =====================================================
+   CANCEL PAGE TABLE REDESIGN
+   ===================================================== */
+.cancel-table-container {
+  overflow-x: auto;
+  margin-bottom: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.cancel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+  background: var(--color-white);
+}
+
+.cancel-table th {
+  background: var(--color-bg-secondary);
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.cancel-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  vertical-align: middle;
+}
+
+.cancel-table tr:last-child td {
+  border-bottom: none;
+}
+
+.cancel-table tr:hover {
+  background-color: var(--color-bg);
+}
+
+.cancel-table .action-col {
+  text-align: right;
+  white-space: nowrap;
+  width: 1%;
+}
+
+.cancel-table .checkbox-col {
+  width: 40px;
+  text-align: center;
+}
+
+.cancel-btn-sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-xs);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-danger);
+  color: var(--color-danger);
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.cancel-btn-sm:hover {
+  background: var(--color-danger);
+  color: white;
+}
+
+.cancel-btn-sm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+.past-row {
+  opacity: 0.6;
+  background-color: var(--color-bg-secondary);
+}
+
+.past-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  background: var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+}

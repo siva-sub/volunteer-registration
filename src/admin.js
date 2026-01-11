@@ -1143,13 +1143,21 @@ async function loadEventDetails(eventId) {
         if (regData.success) {
             // Filter registrations that belong to this event (meaning they have at least one shift in this event)
             const allRegs = regData.data || [];
+            console.log('DEBUG: Fetched all regs:', allRegs.length);
+            console.log('DEBUG: Filtering for Event ID:', eventId);
 
             state.registrations = allRegs.filter(reg => {
                 if (!reg.shifts || reg.shifts.length === 0) return false;
-                // Check if any shift belongs to this event using event_id (which we verified is now returned by RPC)
-                // Fallback to slot_id check if event_id missing (backward compat)
-                return reg.shifts.some(s => s.event_id === eventId || state.slots.some(slot => slot.id === s.slot_id));
+
+                const match = reg.shifts.some(s => {
+                    const eventMatch = s.event_id === eventId;
+                    const slotMatch = state.slots.some(slot => slot.id === s.slot_id);
+                    // console.log(`DEBUG: Reg ${reg.id} - EventMatch: ${eventMatch}, SlotMatch: ${slotMatch}`);
+                    return eventMatch || slotMatch;
+                });
+                return match;
             });
+            console.log('DEBUG: Filtered regs:', state.registrations.length);
         }
 
         // Load all data concurrently
