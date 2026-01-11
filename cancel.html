@@ -85,6 +85,27 @@
                 </p>
             </div>
         </footer>
+
+        <!-- Confirmation Modal -->
+        <div class="modal-overlay" id="confirmModal" hidden>
+            <div class="modal modal--small">
+                <div class="modal-header">
+                    <h3 class="modal-title">⚠️ Confirm Cancellation</h3>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to cancel <strong><span id="cancelCount">0</span> shift(s)</strong>?</p>
+                    <p style="color: var(--color-text-muted); font-size: 0.875rem; margin-top: 8px;">
+                        This action cannot be undone.
+                    </p>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="action-btn action-btn--secondary" id="confirmCancelNo">No, Keep
+                        Them</button>
+                    <button type="button" class="action-btn action-btn--danger" id="confirmCancelYes">Yes, Cancel
+                        Shifts</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module" src="./src/cancel.js"></script>

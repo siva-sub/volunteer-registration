@@ -30,7 +30,12 @@ const elements = {
     slotsList: document.getElementById('slotsList'),
     cancelBtn: document.getElementById('cancelBtn'),
     successSection: document.getElementById('successSection'),
-    successMessage: document.getElementById('successMessage')
+    successMessage: document.getElementById('successMessage'),
+    // Confirmation modal
+    confirmModal: document.getElementById('confirmModal'),
+    cancelCount: document.getElementById('cancelCount'),
+    confirmCancelNo: document.getElementById('confirmCancelNo'),
+    confirmCancelYes: document.getElementById('confirmCancelYes')
 };
 
 // =====================================================
@@ -161,11 +166,27 @@ async function handleCancel(e) {
 
     const slotIds = Array.from(checked).map(cb => cb.value);
 
-    const confirmMsg = slotIds.length === 1
-        ? 'Are you sure you want to cancel this shift?'
-        : `Are you sure you want to cancel ${slotIds.length} shifts?`;
+    // Show confirmation modal
+    elements.cancelCount.textContent = slotIds.length;
+    elements.confirmModal.hidden = false;
+}
 
-    if (!confirm(confirmMsg)) return;
+// =====================================================
+// EVENT LISTENERS
+// =====================================================
+
+elements.cancelForm.addEventListener('submit', handleCancel);
+
+// Modal event handlers
+elements.confirmCancelNo.addEventListener('click', () => {
+    elements.confirmModal.hidden = true;
+});
+
+elements.confirmCancelYes.addEventListener('click', async () => {
+    elements.confirmModal.hidden = true;
+
+    const checked = document.querySelectorAll('input[name="slot"]:checked');
+    const slotIds = Array.from(checked).map(cb => cb.value);
 
     elements.cancelBtn.disabled = true;
     elements.cancelBtn.textContent = 'Cancelling...';
@@ -182,11 +203,10 @@ async function handleCancel(e) {
             throw new Error(data.error || 'Cancellation failed');
         }
 
-        // Show success
         if (data.registration_deleted) {
-            elements.successMessage.textContent = 'All your shifts have been cancelled and your registration has been removed.';
+            elements.successMessage.textContent = 'All your shifts have been cancelled.';
         } else {
-            elements.successMessage.textContent = `${data.cancelled_count} shift(s) have been cancelled.`;
+            elements.successMessage.textContent = `${data.cancelled_count} shift(s) cancelled.`;
         }
 
         showSection(elements.successSection);
@@ -197,13 +217,7 @@ async function handleCancel(e) {
         elements.cancelBtn.disabled = false;
         updateCancelButton();
     }
-}
-
-// =====================================================
-// EVENT LISTENERS
-// =====================================================
-
-elements.cancelForm.addEventListener('submit', handleCancel);
+});
 
 // Initialize
 init();
