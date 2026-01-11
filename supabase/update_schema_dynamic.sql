@@ -120,13 +120,17 @@ SECURITY DEFINER
 AS $$
 DECLARE
   v_registration_id UUID;
+  v_cancel_token UUID;
+  v_checkin_tokens UUID[] := '{}';
   v_slot_id UUID;
   v_current_count INTEGER;
   v_capacity INTEGER;
   v_unavailable_slots JSON[] := '{}';
-  v_slot_info RECORD;
+  v_slot_date DATE;
+  v_slot_name TEXT;
   v_event_id UUID;
   v_first_event_id UUID;
+  v_checkin_token_temp UUID;
 BEGIN
   -- Validate inputs
   IF p_full_name IS NULL OR TRIM(p_full_name) = '' THEN
@@ -147,7 +151,7 @@ BEGIN
     -- Get slot with row lock
     -- Also check for soft delete
     SELECT registered_count, capacity, date, shift_name, event_id
-    INTO v_current_count, v_capacity, v_slot_info.date, v_slot_info.shift_name, v_event_id
+    INTO v_current_count, v_capacity, v_slot_date, v_slot_name, v_event_id
     FROM shift_slots 
     WHERE id = v_slot_id AND deleted_at IS NULL
     FOR UPDATE;
@@ -167,7 +171,7 @@ BEGIN
     IF v_current_count >= v_capacity THEN
       v_unavailable_slots := array_append(
         v_unavailable_slots, 
-        json_build_object('date', v_slot_info.date, 'shift', v_slot_info.shift_name)
+        json_build_object('date', v_slot_date, 'shift', v_slot_name)
       );
     END IF;
   END LOOP;
@@ -182,18 +186,19 @@ BEGIN
   END IF;
   
   -- All slots available - create registration
-  INSERT INTO registrations (full_name, phone, email)
-  VALUES (TRIM(p_full_name), TRIM(p_phone), NULLIF(TRIM(COALESCE(p_email, '')), ''))
-  RETURNING id INTO v_registration_id;
+  INSERT INTO registrations (full_name, phone, email, event_id)
+  VALUES (TRIM(p_full_name), TRIM(p_phone), NULLIF(TRIM(COALESCE(p_email, '')), ''), v_first_event_id)
+  RETURNING id, cancel_token INTO v_registration_id, v_cancel_token;
   
   -- Link registration to slots and increment counts
   FOR v_slot_id IN SELECT unnest(p_slot_ids)
   LOOP
-    -- Create junction record
     INSERT INTO registration_slots (registration_id, slot_id)
-    VALUES (v_registration_id, v_slot_id);
+    VALUES (v_registration_id, v_slot_id)
+    RETURNING checkin_token INTO v_checkin_token_temp;
     
-    -- Increment slot count
+    v_checkin_tokens := array_append(v_checkin_tokens, v_checkin_token_temp);
+    
     UPDATE shift_slots 
     SET registered_count = registered_count + 1
     WHERE id = v_slot_id;
@@ -203,6 +208,8 @@ BEGIN
   RETURN json_build_object(
     'success', true, 
     'registration_id', v_registration_id,
+    'cancel_token', v_cancel_token,
+    'checkin_tokens', v_checkin_tokens,
     'message', 'Registration successful',
     'event_id', v_first_event_id
   );
@@ -234,6 +241,7 @@ BEGIN
         r.phone,
         r.email,
         rs.id as registration_slot_id,
+        rs.checkin_token,
         ss.date,
         ss.day_of_week,
         ss.shift_name,
@@ -243,7 +251,14 @@ BEGIN
         e.title as event_title,
         e.organization_name,
         e.contact_person,
-        e.contact_whatsapp
+        e.contact_whatsapp,
+        -- Computed Check-in Window
+        CASE 
+          WHEN ss.checkin_open_at IS NOT NULL THEN ss.checkin_open_at
+          WHEN COALESCE(e.checkin_window_mode, 'auto') = 'auto' THEN 
+            (ss.date || ' ' || ss.start_time)::TIMESTAMPTZ - (COALESCE(e.checkin_open_offset_minutes, 30) || ' minutes')::INTERVAL
+          ELSE NULL
+        END as checkin_open_at
       FROM registrations r
       JOIN registration_slots rs ON r.id = rs.registration_id
       JOIN shift_slots ss ON rs.slot_id = ss.id

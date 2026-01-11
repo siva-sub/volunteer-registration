@@ -84,7 +84,16 @@ const elements = {
   successSection: document.getElementById('successSection'),
   successDetails: document.getElementById('successDetails'),
   successEmailNote: document.getElementById('successEmailNote'),
-  registerAnotherBtn: document.getElementById('registerAnotherBtn')
+  registerAnotherBtn: document.getElementById('registerAnotherBtn'),
+
+  // Waitlist Modal
+  waitlistModal: document.getElementById('waitlistModal'),
+  waitlistModalClose: document.getElementById('waitlistModalClose'),
+  waitlistCancelBtn: document.getElementById('waitlistCancelBtn'),
+  waitlistForm: document.getElementById('waitlistForm'),
+  waitlistName: document.getElementById('waitlistName'),
+  waitlistPhone: document.getElementById('waitlistPhone'),
+  waitlistEmail: document.getElementById('waitlistEmail')
 };
 
 // =====================================================
@@ -348,12 +357,11 @@ function renderShiftCards() {
     return;
   }
 
-  elements.shiftsGrid.innerHTML = dateSlots.map(slot => {
+  // Helper to render simple list of slots
+  const renderSlotList = (slots) => slots.map(slot => {
     const availability = getAvailabilityInfo(slot);
     const isSelected = state.selectedSlotIds.has(slot.id);
-    const isFull = isSlotFull(slot) && !isSelected; // Allows unchecking if full but already selected (unlikely edge case but good UX)
-
-    // Dynamic Icon
+    const isFull = isSlotFull(slot) && !isSelected;
     const icon = getShiftIcon(slot.shift_name);
     const timeRange = `${formatTime(slot.start_time)} – ${formatTime(slot.end_time)}`;
 
@@ -366,9 +374,11 @@ function renderShiftCards() {
         aria-disabled="${isFull}"
         tabindex="${isFull ? -1 : 0}"
       >
-        <span class="shift-icon">${icon}</span>
-        <span class="shift-name">${slot.shift_name}</span>
-        ${slot.station ? `<span class="shift-station">${slot.station}</span>` : ''}
+        <div class="shift-card-header">
+            <span class="shift-icon">${icon}</span>
+            <span class="shift-name">${slot.shift_name}</span>
+        </div>
+        ${slot.station ? `<span class="shift-station-label">${slot.station}</span>` : ''}
         <span class="shift-time">${timeRange}</span>
         <div class="shift-availability shift-availability--${availability.class}">
           <div class="availability-dots">
@@ -393,6 +403,34 @@ function renderShiftCards() {
     `;
   }).join('');
 
+  // Group by station
+  const stations = {};
+  let hasStations = false;
+  dateSlots.forEach(slot => {
+    const st = slot.station || 'General';
+    if (slot.station) hasStations = true;
+    if (!stations[st]) stations[st] = [];
+    stations[st].push(slot);
+  });
+
+  if (!hasStations) {
+    elements.shiftsGrid.innerHTML = renderSlotList(dateSlots);
+    elements.shiftsGrid.className = 'shifts-grid'; // Ensure clean grid
+  } else {
+    elements.shiftsGrid.className = 'shifts-container'; // Change class to allow block layout
+    const stationKeys = Object.keys(stations).sort(); // Alphabetical
+
+    elements.shiftsGrid.innerHTML = stationKeys.map(st => `
+          <div class="station-group">
+              <h4 class="station-title">${st === 'General' ? 'General Shifts' : st}</h4>
+              <div class="station-slots-grid">
+                  ${renderSlotList(stations[st])}
+              </div>
+          </div>
+      `).join('');
+  }
+
+  // Re-attach listeners
   elements.shiftsGrid.querySelectorAll('.shift-card').forEach(card => {
     card.addEventListener('click', handleShiftCardClick);
     card.addEventListener('keydown', (e) => {
@@ -524,13 +562,27 @@ function showSuccessState(registrationData) {
   elements.summarySection.hidden = true;
   elements.successSection.hidden = false;
 
+  const isApproval = registrationData.mode === 'approval';
+
+  // Update Title and Message
+  const successTitle = elements.successSection.querySelector('.success-title');
+  const successMsg = elements.successSection.querySelector('.success-message');
+
+  if (isApproval) {
+    if (successTitle) successTitle.textContent = 'Application Received';
+    if (successMsg) successMsg.textContent = 'You have been added to the applicant list. You will receive a confirmation email only if your spot is approved.';
+  } else {
+    if (successTitle) successTitle.textContent = 'Registration Confirmed!';
+    if (successMsg) successMsg.textContent = 'Thank you for volunteering. A confirmation email has been sent to you.';
+  }
+
   const selectedSlots = Array.from(state.selectedSlotIds)
     .map(id => getSlotById(id))
     .filter(Boolean)
     .sort((a, b) => a.date.localeCompare(b.date));
 
   elements.successDetails.innerHTML = `
-    <p class="success-details-title">You're signed up for:</p>
+    <p class="success-details-title">${isApproval ? 'Applied for:' : "You're signed up for:"}</p>
     <ul class="success-details-list">
       ${selectedSlots.map(slot => `
         <li class="success-details-item">
@@ -540,7 +592,7 @@ function showSuccessState(registrationData) {
     </ul>
   `;
 
-  if (registrationData.email) {
+  if (registrationData.email && !isApproval) {
     elements.successEmailNote.hidden = false;
   } else {
     elements.successEmailNote.hidden = true;
@@ -677,11 +729,11 @@ async function handleFormSubmit(e) {
       }
     } else {
       // Success
-      if (email) {
-        // Pass complete event details
-        await sendConfirmationEmail(name, email, slotIds);
+      if (email && data.registration_mode !== 'approval') {
+        // Pass complete event details and tokens
+        await sendConfirmationEmail(name, email, slotIds, data.cancel_token, data.checkin_tokens);
       }
-      showSuccessState({ fullName: name, email });
+      showSuccessState({ fullName: name, email, mode: data.registration_mode });
       // Ideally we shouldn't rely on 'data.event_id' from RPC if we have it in state
     }
 
@@ -697,7 +749,7 @@ async function handleFormSubmit(e) {
   }
 }
 
-async function sendConfirmationEmail(name, email, slotIds) {
+async function sendConfirmationEmail(name, email, slotIds, cancelToken, checkinTokens) {
   try {
     const slots = slotIds.map(id => getSlotById(id)).filter(Boolean);
 
@@ -711,12 +763,15 @@ async function sendConfirmationEmail(name, email, slotIds) {
         type: 'confirmation', // function should handle this
         name,
         email,
-        slots: slots.map(s => ({
+        cancel_token: cancelToken,
+        slots: slots.map((s, idx) => ({
           date: s.date,
           day_of_week: s.day_of_week || getDayAbbr(s.date),
           shift_name: s.shift_name,
           start_time: s.start_time,
-          end_time: s.end_time
+          end_time: s.end_time,
+          checkin_open_at: s.checkin_open_at, // Pass the computed window
+          checkin_token: checkinTokens ? checkinTokens[idx] : null
         })),
         event_details: {
           title: state.event.title,
@@ -758,6 +813,11 @@ function init() {
   elements.registrationForm.addEventListener('submit', handleFormSubmit);
   elements.registerAnotherBtn.addEventListener('click', handleRegisterAnother);
 
+  // Waitlist Modal
+  if (elements.waitlistModalClose) elements.waitlistModalClose.addEventListener('click', closeWaitlistModal);
+  if (elements.waitlistCancelBtn) elements.waitlistCancelBtn.addEventListener('click', closeWaitlistModal);
+  if (elements.waitlistForm) elements.waitlistForm.addEventListener('submit', handleWaitlistSubmit);
+
   loadEventData();
 }
 
@@ -765,23 +825,34 @@ function init() {
 // WAITLIST
 // =====================================================
 
-window.joinWaitlist = async function (slotId) {
-  const name = elements.fullNameInput.value.trim();
-  const phone = elements.phoneInput.value.trim();
-  const email = elements.emailInput.value.trim();
+window.joinWaitlist = function (slotId) {
+  state.waitlistSlotId = slotId;
 
-  if (!name || !phone) {
-    alert('Please fill in your name and phone number first, then click "Join Waitlist".');
-    elements.fullNameInput.focus();
-    return;
-  }
+  // Pre-fill if main form has values
+  elements.waitlistName.value = elements.fullNameInput.value.trim();
+  elements.waitlistPhone.value = elements.phoneInput.value.trim();
+  elements.waitlistEmail.value = elements.emailInput.value.trim();
 
-  const slot = state.slots.find(s => s.id === slotId);
-  const slotName = slot ? `${slot.shift_name} on ${slot.date}` : 'this shift';
+  elements.waitlistModal.hidden = false;
+};
 
-  if (!confirm(`Join waitlist for ${slotName}?\n\nWe'll notify you if a spot opens up.`)) {
-    return;
-  }
+function closeWaitlistModal() {
+  elements.waitlistModal.hidden = true;
+  state.waitlistSlotId = null;
+  elements.waitlistForm.reset();
+}
+
+async function handleWaitlistSubmit(e) {
+  e.preventDefault();
+  const slotId = state.waitlistSlotId;
+  const name = elements.waitlistName.value.trim();
+  const phone = elements.waitlistPhone.value.trim();
+  const email = elements.waitlistEmail.value.trim();
+
+  const btn = elements.waitlistForm.querySelector('button[type="submit"]');
+  const originalText = btn.textContent;
+  btn.textContent = 'Joining...';
+  btn.disabled = true;
 
   try {
     const { data, error } = await supabase.rpc('join_waitlist', {
@@ -798,11 +869,47 @@ window.joinWaitlist = async function (slotId) {
       return;
     }
 
+    const slot = state.slots.find(s => s.id === slotId);
+
+    if (email) {
+      // Trigger Waitlist Email
+      fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          type: 'waitlist_join',
+          name,
+          email,
+          position: data.position,
+          slots: [{
+            date: slot.date,
+            day_of_week: slot.day_of_week || getDayAbbr(slot.date),
+            shift_name: slot.shift_name,
+            start_time: slot.start_time,
+            end_time: slot.end_time
+          }],
+          event_details: {
+            title: state.event.title,
+            organization_name: state.event.organization_name,
+            contact_person: state.event.contact_person,
+            contact_whatsapp: state.event.contact_whatsapp
+          }
+        })
+      }).catch(err => console.error('Waitlist email failed', err));
+    }
+
     alert(`✅ Added to waitlist!\n\nYour position: #${data.position}\n\nWe'll contact you if a spot opens.`);
+    closeWaitlistModal();
   } catch (error) {
     console.error('Waitlist error:', error);
     alert('Failed to join waitlist. Please try again.');
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
   }
-};
+}
 
 init();

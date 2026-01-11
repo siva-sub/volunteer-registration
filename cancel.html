@@ -30,7 +30,43 @@
                 <section id="loadingSection">
                     <div class="loading-card">
                         <div class="spinner"></div>
-                        <p>Loading your registration...</p>
+                        <p>Loading...</p>
+                    </div>
+                </section>
+
+                <!-- Phone Search Section -->
+                <section id="searchSection" hidden>
+                    <div class="manage-card">
+                        <div class="manage-header">
+                            <h2>Find My Registration</h2>
+                            <p>Enter your phone number to retrieve your volunteer shifts.</p>
+                        </div>
+                        <form id="phoneSearchForm" class="search-form">
+                            <div class="form-group">
+                                <label for="searchPhone" class="form-label">Phone Number</label>
+                                <input type="tel" id="searchPhone" class="form-input" placeholder="e.g. 91234567"
+                                    required>
+                            </div>
+                            <button type="submit" class="action-btn action-btn--primary" id="searchSubmitBtn">Search
+                                Registrations</button>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- Multiple Results Section -->
+                <section id="resultsSection" hidden>
+                    <div class="manage-card">
+                        <div class="manage-header">
+                            <h2 id="resultsCount">Found Registrations</h2>
+                            <p>Select one to manage your shifts:</p>
+                        </div>
+                        <div id="resultsList" class="results-list">
+                            <!-- Results will be inserted here -->
+                        </div>
+                        <div class="cancel-actions">
+                            <button type="button" class="action-btn action-btn--secondary" id="backToSearchBtn">Back to
+                                Search</button>
+                        </div>
                     </div>
                 </section>
 

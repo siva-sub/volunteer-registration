@@ -13,24 +13,39 @@ const elements = {
     submittedState: document.getElementById('submittedState'),
     successState: document.getElementById('successState'),
     reportForm: document.getElementById('reportForm'),
+
+    // Header
     volunteerName: document.getElementById('volunteerName'),
     shiftName: document.getElementById('shiftName'),
     shiftDate: document.getElementById('shiftDate'),
+    notRequiredNotice: document.getElementById('notRequiredNotice'),
+
+    // Sales
     salesItems: document.getElementById('salesItems'),
-    totalAmount: document.getElementById('totalAmount'),
+
+    // Cash
+    startFloat: document.getElementById('startFloat'),
+    expectedSalesDisplay: document.getElementById('expectedSalesDisplay'),
+    expectedTotal: document.getElementById('expectedTotal'),
+    actualCash: document.getElementById('actualCash'),
+    reconcileStatus: document.getElementById('reconcileStatus'),
+
+    // Footer
     notesInput: document.getElementById('notesInput'),
-    submitBtn: document.getElementById('submitBtn'),
-    notRequiredNotice: document.getElementById('notRequiredNotice')
+    submitBtn: document.getElementById('submitBtn')
 };
 
 // State
 let state = {
     token: null,
     formData: null,
-    salesItems: []
+    salesItems: [],
+    startFloat: 0,
+    expectedSales: 0,
+    actualCash: 0,
+    discrepancy: 0
 };
 
-// Initialize
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
@@ -47,6 +62,12 @@ async function init() {
 
         if (error) throw error;
 
+        // 1. Check Leader Permission Block
+        if (data.is_non_leader_block) {
+            showError('Restricted: designated Shift Leaders must submit the report.');
+            return;
+        }
+
         if (!data.success) {
             if (data.already_submitted) {
                 showState('submittedState');
@@ -56,7 +77,29 @@ async function init() {
             return;
         }
 
+        // 2. Time Gating Check (Reuse feedback logic)
+        const shiftEndAt = new Date(data.shift_end_at);
+        const now = new Date();
+        // Allow reports 15 mins BEFORE shift ends (unlike feedback) or strict?
+        // Let's stick to strict end check to be safe, or maybe allow if it's close.
+        // User requested "same time gated"
+        if (now < shiftEndAt) {
+            // Re-use error state for simplicity or create new one
+            elements.errorState.innerHTML = `
+                <div class="error-card">
+                    <div class="error-icon">⏰</div>
+                    <h3>Report Not Open Yet</h3>
+                    <p class="error-details">Please return after your shift ends at ${formatTime(shiftEndAt)}.</p>
+                     <a href="/" class="register-another-btn" style="display:inline-block;margin-top:20px;text-decoration:none;">Return Home</a>
+                </div>
+            `;
+            showState('errorState');
+            return;
+        }
+
         state.formData = data;
+        state.startFloat = data.float_amount || 0;
+
         renderForm(data);
 
     } catch (error) {
@@ -66,99 +109,141 @@ async function init() {
 }
 
 function renderForm(data) {
-    // Populate header info
     elements.volunteerName.textContent = data.volunteer_name;
     elements.shiftName.textContent = data.shift_name;
     elements.shiftDate.textContent = formatDate(data.shift_date);
 
-    // Show optional notice if not required
     if (!data.report_required) {
         elements.notRequiredNotice.hidden = false;
     }
 
-    // Get sales items from config
+    // Init Values
+    elements.startFloat.value = state.startFloat.toFixed(2);
+
+    // Sales Items
     const salesConfig = data.sales_config || {};
     const items = salesConfig.items || [];
 
     if (items.length === 0) {
-        // Standard shift - show simple confirmation
-        elements.salesItems.innerHTML = `
-      <div class="not-required-notice">
-        <p>This is a standard shift. No sales report required.</p>
-        <p style="margin-top: 8px;">You can optionally add notes below.</p>
-      </div>
-    `;
-        document.querySelector('.total-section').hidden = true;
+        elements.salesItems.innerHTML = '<p class="text-muted">No sales items configured for this shift.</p>';
+        state.salesItems = [];
     } else {
-        // Sales shift - show item inputs
-        state.salesItems = items.map((item, index) => ({
-            ...item,
-            quantity: 0,
-            amount: 0
-        }));
+        state.salesItems = items.map(item => ({ ...item, quantity: 0, amount: 0 }));
 
         elements.salesItems.innerHTML = items.map((item, index) => `
-      <div class="sales-item" data-index="${index}">
-        <div class="sales-item-header">
-          <span class="sales-item-name">${item.name}</span>
-          <span class="sales-item-price">$${item.unit_price.toFixed(2)} each</span>
-        </div>
-        <div class="sales-item-inputs">
-          <div class="sales-input-group">
-            <label>Quantity Sold</label>
-            <input type="number" class="qty-input" data-index="${index}" min="0" value="0">
-          </div>
-          <div class="sales-input-group">
-            <label>Amount Collected ($)</label>
-            <input type="number" class="amount-input" data-index="${index}" min="0" step="0.01" value="0.00">
-          </div>
-        </div>
-      </div>
-    `).join('');
-
-        // Add event listeners
-        document.querySelectorAll('.qty-input').forEach(input => {
-            input.addEventListener('input', handleQuantityChange);
-        });
-        document.querySelectorAll('.amount-input').forEach(input => {
-            input.addEventListener('input', updateTotal);
-        });
+            <div class="sales-item" data-index="${index}">
+                <div class="sales-item-header">
+                    <span class="sales-item-name">${item.name}</span>
+                    <span class="sales-item-price">$${item.unit_price.toFixed(2)}</span>
+                </div>
+                <div class="sales-item-inputs">
+                    <div class="sales-input-group">
+                        <label>Qty Sold</label>
+                        <input type="number" class="qty-input" data-index="${index}" min="0" value="0">
+                    </div>
+                    <div class="sales-input-group">
+                        <label>Total ($)</label>
+                        <input type="number" class="amount-input" data-index="${index}" min="0" step="0.01" value="0.00">
+                    </div>
+                </div>
+            </div>
+        `).join('');
     }
 
-    // Setup submit button
+    // Event Listeners
+    elements.startFloat.addEventListener('input', (e) => {
+        state.startFloat = parseFloat(e.target.value) || 0;
+        recalculate();
+    });
+
+    elements.salesItems.addEventListener('input', (e) => {
+        if (e.target.classList.contains('qty-input')) {
+            const idx = e.target.dataset.index;
+            const qty = parseInt(e.target.value) || 0;
+            const item = state.salesItems[idx];
+
+            // Auto-calc amount
+            const amt = qty * item.unit_price;
+            document.querySelector(`.amount-input[data-index="${idx}"]`).value = amt.toFixed(2);
+
+            state.salesItems[idx].quantity = qty;
+            state.salesItems[idx].amount = amt;
+            recalculate();
+        }
+        else if (e.target.classList.contains('amount-input')) {
+            const idx = e.target.dataset.index;
+            const amt = parseFloat(e.target.value) || 0;
+            state.salesItems[idx].amount = amt;
+            recalculate();
+        }
+    });
+
+    elements.actualCash.addEventListener('input', (e) => {
+        state.actualCash = parseFloat(e.target.value) || 0;
+        recalculate();
+    });
+
     elements.submitBtn.addEventListener('click', handleSubmit);
 
-    // Show form
+    recalculate(); // Initial state
     showState('reportForm');
 }
 
-function handleQuantityChange(e) {
-    const index = parseInt(e.target.dataset.index);
-    const qty = parseInt(e.target.value) || 0;
-    const item = state.salesItems[index];
+function recalculate() {
+    // 1. Calc Sales Total
+    state.expectedSales = state.salesItems.reduce((sum, item) => sum + item.amount, 0);
+    elements.expectedSalesDisplay.textContent = `$${state.expectedSales.toFixed(2)}`;
 
-    // Auto-calculate expected amount
-    const expectedAmount = qty * item.unit_price;
+    // 2. Calc Expected Total (Float + Sales)
+    const expectedTotal = state.startFloat + state.expectedSales;
+    elements.expectedTotal.textContent = `$${expectedTotal.toFixed(2)}`;
 
-    // Update amount input
-    const amountInput = document.querySelector(`.amount-input[data-index="${index}"]`);
-    amountInput.value = expectedAmount.toFixed(2);
+    // 3. Calc Discrepancy
+    state.discrepancy = state.actualCash - expectedTotal;
 
-    // Update state
-    state.salesItems[index].quantity = qty;
-    state.salesItems[index].amount = expectedAmount;
-
-    updateTotal();
+    // 4. Update UI Status
+    updateReconcileStatus(state.discrepancy, expectedTotal);
 }
 
-function updateTotal() {
-    let total = 0;
-    document.querySelectorAll('.amount-input').forEach((input, index) => {
-        const amount = parseFloat(input.value) || 0;
-        state.salesItems[index].amount = amount;
-        total += amount;
-    });
-    elements.totalAmount.textContent = total.toFixed(2);
+function updateReconcileStatus(diff, total) {
+    const statusEl = elements.reconcileStatus;
+    statusEl.hidden = false;
+
+    // Tolerance for floating point math
+    const isMatch = Math.abs(diff) < 0.01;
+
+    if (total === 0 && state.actualCash === 0) {
+        statusEl.innerHTML = 'Please enter amounts.';
+        statusEl.className = 'info-note';
+        return;
+    }
+
+    if (isMatch) {
+        statusEl.className = 'success-note'; // Define css or inline
+        statusEl.style.backgroundColor = '#e6fffa';
+        statusEl.style.color = '#047857';
+        statusEl.style.border = '1px solid #a7f3d0';
+        statusEl.innerHTML = '✅ <strong>Perfect Match!</strong> Amounts tally.';
+    } else {
+        const isShort = diff < 0;
+        const color = Math.abs(diff) > 10 ? '#ef4444' : '#f59e0b'; // Red if big error, yellow if small
+        const bg = Math.abs(diff) > 10 ? '#fef2f2' : '#fffbeb';
+
+        statusEl.className = 'warning-note';
+        statusEl.style.backgroundColor = bg;
+        statusEl.style.color = '#b45309'; // text-amber-700
+        statusEl.style.border = `1px solid ${color}`;
+
+        statusEl.innerHTML = `
+            <div style="font-weight:600; color: ${color}">
+                ⚠️ Discrepancy: ${isShort ? 'Short' : 'Over'} by $${Math.abs(diff).toFixed(2)}
+            </div>
+            <div style="font-size: 0.9em; margin-top: 4px;">
+                Please re-count or explain the difference in the notes below. 
+                (You can still submit)
+            </div>
+        `;
+    }
 }
 
 async function handleSubmit() {
@@ -166,59 +251,67 @@ async function handleSubmit() {
     elements.submitBtn.textContent = 'Submitting...';
 
     try {
-        // Build report data
         const reportData = {
-            items_sold: state.salesItems.map(item => ({
-                name: item.name,
-                quantity: item.quantity || 0,
-                unit_price: item.unit_price,
-                amount: item.amount || 0
+            items_sold: state.salesItems.map(i => ({
+                name: i.name,
+                quantity: i.quantity,
+                unit_price: i.unit_price,
+                amount: i.amount
             })),
-            total_amount: parseFloat(elements.totalAmount.textContent) || 0
+            total_sales: state.expectedSales
         };
 
-        const notes = elements.notesInput.value.trim() || null;
+        const notes = elements.notesInput.value.trim();
 
         const { data, error } = await supabase.rpc('submit_shift_report', {
             p_token: state.token,
             p_report_data: reportData,
-            p_notes: notes
+            p_notes: notes,
+            p_start_float: state.startFloat,
+            p_end_cash: state.actualCash,
+            p_discrepancy: state.discrepancy
         });
 
         if (error) throw error;
 
-        if (!data.success) {
-            throw new Error(data.error || 'Failed to submit report');
-        }
-
+        // Success
         showState('successState');
 
     } catch (error) {
         console.error('Submit error:', error);
-        alert('Failed to submit report: ' + error.message);
+        alert('Error: ' + error.message);
         elements.submitBtn.disabled = false;
         elements.submitBtn.textContent = 'Submit Report';
     }
 }
 
 function showState(stateId) {
-    ['loadingState', 'errorState', 'submittedState', 'successState', 'reportForm'].forEach(id => {
-        document.getElementById(id).hidden = id !== stateId;
+    [
+        elements.loadingState,
+        elements.errorState,
+        elements.submittedState,
+        elements.successState,
+        elements.reportForm
+    ].forEach(el => {
+        if (el) el.hidden = true;
     });
+
+    const el = document.getElementById(stateId);
+    if (el) el.hidden = false;
 }
 
-function showError(message) {
-    elements.errorMessage.textContent = message;
+function showError(msg) {
+    elements.errorMessage.textContent = msg;
     showState('errorState');
 }
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-SG', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
+    return new Date(dateStr).toLocaleDateString('en-SG', {
+        weekday: 'short', day: 'numeric', month: 'short'
     });
+}
+
+function formatTime(date) {
+    return date.toLocaleTimeString('en-SG', { hour: 'numeric', minute: '2-digit' });
 }

@@ -20,6 +20,7 @@ const elements = {
     submitBtn: document.getElementById('submitBtn'),
     successSection: document.getElementById('successSection'),
     alreadySection: document.getElementById('alreadySection'),
+    earlySection: document.getElementById('earlySection'), // New
     errorSection: document.getElementById('errorSection'),
     errorTitle: document.getElementById('errorTitle'),
     errorMessage: document.getElementById('errorMessage')
@@ -127,6 +128,20 @@ async function init() {
                 elements.errorMessage.textContent = data.error || 'Failed to load feedback form';
                 showSection(elements.errorSection);
             }
+            return;
+        }
+
+        // Time Gating Check
+        const shiftEndAt = new Date(data.shift_end_at);
+        const now = new Date();
+
+        if (now < shiftEndAt) {
+            // Too Early
+            elements.earlySection.hidden = false;
+            elements.loadingSection.hidden = true;
+            document.getElementById('opensAt').textContent = shiftEndAt.toLocaleString('en-SG', {
+                weekday: 'short', hour: 'numeric', minute: '2-digit', hour12: true
+            });
             return;
         }
 

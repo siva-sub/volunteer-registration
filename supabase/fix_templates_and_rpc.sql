@@ -1,29 +1,114 @@
--- =====================================================
--- EVENT TEMPLATES - Add to migration_phase3_4.sql
--- =====================================================
+-- Fix Templates and RPC
 
--- Create event templates table
-CREATE TABLE IF NOT EXISTS event_templates (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  category TEXT NOT NULL,
-  description TEXT,
-  slot_config JSONB NOT NULL,
-  default_settings JSONB,
-  icon TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- 1. Create RPC first (was missing)
+CREATE OR REPLACE FUNCTION apply_event_template(
+  p_event_id UUID,
+  p_template_id UUID,
+  p_date DATE
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_template RECORD;
+  v_slot JSONB;
+  v_created_count INT := 0;
+BEGIN
+  -- Get template
+  SELECT * INTO v_template FROM event_templates WHERE id = p_template_id;
+  
+  IF v_template IS NULL THEN
+    RETURN json_build_object('success', false, 'error', 'Template not found');
+  END IF;
+  
+  -- Create slots from template
+  FOR v_slot IN SELECT * FROM jsonb_array_elements(v_template.slot_config->'slots')
+  LOOP
+    INSERT INTO shift_slots (
+      event_id,
+      date,
+      day_of_week,
+      shift_name,
+      start_time,
+      end_time,
+      capacity,
+      registered_count,
+      station,
+      slot_type,
+      sales_config,
+      report_required
+    )
+    VALUES (
+      p_event_id,
+      p_date,
+      TO_CHAR(p_date, 'Day'),
+      v_slot->>'name',
+      (v_slot->>'start')::TIME,
+      (v_slot->>'end')::TIME,
+      (v_slot->>'capacity')::INT,
+      0,
+      v_slot->>'station',
+      COALESCE(v_template.slot_config->>'slot_type', 'standard'),
+      v_template.slot_config->'sales_config',
+      COALESCE((v_template.slot_config->>'report_required')::BOOLEAN, false)
+    );
+    
+    v_created_count := v_created_count + 1;
+  END LOOP;
+  
+  RETURN json_build_object('success', true, 'created_count', v_created_count);
+END;
+$$;
 
--- Enable RLS
-ALTER TABLE event_templates ENABLE ROW LEVEL SECURITY;
+GRANT EXECUTE ON FUNCTION apply_event_template(UUID, UUID, DATE) TO service_role;
 
-CREATE POLICY "Public can view templates" ON event_templates
-  FOR SELECT TO anon, authenticated USING (true);
+-- 2. Waitlist Admin RPC
+CREATE OR REPLACE FUNCTION admin_get_waitlist(
+  p_password TEXT,
+  p_event_id UUID
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  IF p_password != 'temple2026' THEN
+    RETURN json_build_object('success', false, 'error', 'Unauthorized');
+  END IF;
 
-CREATE POLICY "Service role manages templates" ON event_templates
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
+  RETURN json_build_object(
+    'success', true,
+    'data', (
+      SELECT json_agg(row_to_json(w))
+      FROM (
+        SELECT 
+          wl.id,
+          wl.full_name,
+          wl.phone,
+          wl.email,
+          wl.position,
+          wl.created_at,
+          ss.date,
+          ss.shift_name,
+          ss.start_time,
+          ss.end_time
+        FROM waitlist wl
+        JOIN shift_slots ss ON wl.slot_id = ss.id
+        WHERE wl.event_id = p_event_id
+        ORDER BY wl.position
+      ) w
+    )
+  );
+END;
+$$;
 
--- Seed templates
+GRANT EXECUTE ON FUNCTION admin_get_waitlist(TEXT, UUID) TO service_role;
+
+-- 3. Reset Templates (Truncate and Re-seed)
+TRUNCATE TABLE event_templates;
+
+-- Insert all 16 templates
 INSERT INTO event_templates (name, category, description, icon, slot_config, default_settings) VALUES
 -- 1. Thaipusam
 ('Thaipusam Multi-Day Festival', 'festival', 'Multi-day festival with route marshals, food service, and crowd control', '🎉', 
@@ -130,7 +215,7 @@ INSERT INTO event_templates (name, category, description, icon, slot_config, def
   {"name": "Equipment Pack-up", "start": "17:00", "end": "18:00", "capacity": 6, "station": "Cleanup"}
 ]}',
 '{"checkin_required": true, "feedback_enabled": true, "certificates_enabled": true, "paused": false}'),
-    
+
 -- 9. Pradosham (Bi-Monthly)
 ('Pradosham', 'festival', 'Bi-monthly prayer event with cleaning and pooja assistance', '🧘',
 '{"slots": [
@@ -225,60 +310,3 @@ INSERT INTO event_templates (name, category, description, icon, slot_config, def
   {"name": "Day 2 Checkout & Cleanup", "start": "12:00", "end": "15:00", "capacity": 8, "station": "Cleanup"}
 ]}',
 '{"checkin_required": true, "feedback_enabled": true, "certificates_enabled": true, "paused": false}');
-
--- RPC to apply template to event
-CREATE OR REPLACE FUNCTION apply_event_template(
-  p_event_id UUID,
-  p_template_id UUID,
-  p_date DATE
-)
-RETURNS JSON
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_template RECORD;
-  v_slot JSONB;
-  v_created_count INT := 0;
-BEGIN
-  -- Get template
-  SELECT * INTO v_template FROM event_templates WHERE id = p_template_id;
-  
-  IF v_template IS NULL THEN
-    RETURN json_build_object('success', false, 'error', 'Template not found');
-  END IF;
-  
-  -- Create slots from template
-  FOR v_slot IN SELECT * FROM jsonb_array_elements(v_template.slot_config->'slots')
-  LOOP
-    INSERT INTO shift_slots (
-      event_id,
-      date,
-      day_of_week,
-      shift_name,
-      start_time,
-      end_time,
-      capacity,
-      registered_count,
-      station
-    )
-    VALUES (
-      p_event_id,
-      p_date,
-      TO_CHAR(p_date, 'Day'),
-      v_slot->>'name',
-      (v_slot->>'start')::TIME,
-      (v_slot->>'end')::TIME,
-      (v_slot->>'capacity')::INT,
-      0,
-      v_slot->>'station'
-    );
-    
-    v_created_count := v_created_count + 1;
-  END LOOP;
-  
-  RETURN json_build_object('success', true, 'created_count', v_created_count);
-END;
-$$;
-
-GRANT EXECUTE ON FUNCTION apply_event_template(UUID, UUID, DATE) TO service_role;

@@ -72,12 +72,14 @@ async function init() {
                 elements.volunteerName.textContent = `Welcome, ${data.volunteer_name}!`;
                 elements.checkInTime.textContent = `Checked in at ${formatDateTime(data.checked_in_at)}`;
                 elements.shiftInfo.textContent = `${data.shift_date} - ${data.shift_name}`;
+                addFeedbackButton(elements.successSection, token, data); // Add button
                 showSection(elements.successSection);
                 break;
 
             case 'already_checked_in':
                 elements.alreadyName.textContent = data.volunteer_name;
                 elements.alreadyTime.textContent = `You checked in at ${formatDateTime(data.checked_in_at)}`;
+                addFeedbackButton(elements.alreadySection, token, data); // Add button
                 showSection(elements.alreadySection);
                 break;
 
@@ -90,6 +92,7 @@ async function init() {
             case 'too_late':
                 elements.lateName.textContent = data.volunteer_name;
                 elements.closedAt.textContent = formatDateTime(data.closed_at);
+                addFeedbackButton(elements.lateSection, token, data); // Add button (in case they worked but forgot to check in)
                 showSection(elements.lateSection);
                 break;
 
@@ -97,6 +100,7 @@ async function init() {
                 elements.shiftInfo.textContent = 'Check-in Not Required';
                 elements.volunteerName.textContent = 'This shift does not require check-in.';
                 elements.checkInTime.textContent = '';
+                addFeedbackButton(elements.successSection, token, data);
                 showSection(elements.successSection);
                 break;
 
@@ -112,6 +116,37 @@ async function init() {
         elements.errorMessage.textContent = error.message || 'Failed to process check-in';
         showSection(elements.errorSection);
     }
+}
+
+function addFeedbackButton(container, token, data) {
+    const card = container.querySelector('.success-card, .info-card, .warning-card');
+    if (!card) return;
+
+    // Avoid duplicates
+    if (card.querySelector('.feedback-link-btn')) return;
+
+    // 1. Report Button (If required & allowed)
+    // Show if: (Report Required) AND ( (I am Leader) OR (No Leader Exists) )
+    const canSubmitReport = data && data.report_required && (data.is_shift_leader || !data.leader_exists);
+
+    if (canSubmitReport) {
+        const reportBtn = document.createElement('a');
+        reportBtn.href = `/volunteer-registration/report.html?token=${token}`;
+        reportBtn.className = 'action-btn action-btn--primary'; // Stand out
+        reportBtn.style.marginTop = '20px';
+        reportBtn.textContent = '📝 Submit Shift Report';
+        card.appendChild(reportBtn);
+    }
+
+    // 2. Feedback Button
+    const feedbackBtn = document.createElement('a');
+    feedbackBtn.href = `/volunteer-registration/feedback.html?token=${token}`;
+    feedbackBtn.className = 'action-btn action-btn--outline feedback-link-btn';
+    feedbackBtn.style.marginTop = '10px';
+    feedbackBtn.style.display = 'block'; // Ensure separate line
+    feedbackBtn.textContent = 'Give Feedback (opens after shift)';
+
+    card.appendChild(feedbackBtn);
 }
 
 init();

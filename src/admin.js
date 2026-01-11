@@ -37,7 +37,11 @@ const state = {
     editingEventId: null,
     // Slot modal state
     slotSalesItems: [], // sales items for current slot
-    selectedEmoji: '🎯' // selected station emoji
+    selectedEmoji: '🎯', // selected station emoji
+    reports: [],
+    feedbackSummary: null,
+    eventQuestions: [], // Questions for the currently editing event
+    waitlist: [] // Waitlist for active event
 };
 
 // =====================================================
@@ -94,6 +98,7 @@ const elements = {
     feedbackEnabled: document.getElementById('feedbackEnabled'),
     certificatesEnabled: document.getElementById('certificatesEnabled'),
     checkinRequired: document.getElementById('checkinRequired'),
+    waitlistEnabled: document.getElementById('waitlistEnabled'),
     eventPaused: document.getElementById('eventPaused'),
     eventCancelBtn: document.getElementById('eventCancelBtn'),
 
@@ -143,6 +148,47 @@ const elements = {
     salesItemPrice: document.getElementById('salesItemPrice'),
     salesItemCancelBtn: document.getElementById('salesItemCancelBtn'),
     salesItemAddBtn: document.getElementById('salesItemAddBtn'),
+
+    // Reports Table
+    reportsTableBody: document.getElementById('reportsTableBody'),
+    reportsEmpty: document.getElementById('reportsEmpty'),
+    totalReportsCount: document.getElementById('totalReportsCount'),
+    verifiedReportsCount: document.getElementById('verifiedReportsCount'),
+    flaggedReportsCount: document.getElementById('flaggedReportsCount'),
+    totalSalesAmount: document.getElementById('totalSalesAmount'),
+    refreshReportsBtn: document.getElementById('refreshReportsBtn'),
+    exportReportsBtn: document.getElementById('exportReportsBtn'),
+
+    // Feedback
+    feedbackSummarySection: document.getElementById('feedbackSummarySection'),
+    feedbackResults: document.getElementById('feedbackResults'),
+    refreshFeedbackBtn: document.getElementById('refreshFeedbackBtn'),
+    totalFeedbackCount: document.getElementById('totalFeedbackCount'),
+
+    // Question Editor
+    questionsEditor: document.getElementById('questionsEditor'),
+    addQuestionBtn: document.getElementById('addQuestionBtn'),
+    coordinatorEmail: document.getElementById('coordinatorEmail'),
+    checkinOpenOffset: document.getElementById('checkinOpenOffset'),
+    checkinCloseOffset: document.getElementById('checkinCloseOffset'),
+
+    // Waitlist
+    waitlistSection: document.getElementById('waitlistSection'),
+    waitlistTableBody: document.getElementById('waitlistTableBody'),
+    waitlistStats: document.getElementById('waitlistStats'),
+
+    // Manual Add & Leaders
+    addVolunteerModal: document.getElementById('addVolunteerModal'),
+    addVolunteerForm: document.getElementById('addVolunteerForm'),
+    addVolunteerSlotName: document.getElementById('addVolunteerSlotName'),
+
+    // Template Preview
+    templatePreview: document.getElementById('templatePreview'),
+    templateIcon: document.querySelector('.template-icon'),
+    templateName: document.querySelector('.template-name'),
+    templateDesc: document.querySelector('.template-desc'),
+    templateSlotCount: document.querySelector('.slot-count'),
+    templateStationCount: document.querySelector('.station-count'),
 };
 
 // =====================================================
@@ -319,51 +365,22 @@ function renderEventsGrid() {
 
 function openCreateEventModal() {
     state.editingEventId = null;
+    state.eventQuestions = [];
     elements.eventForm.reset();
     elements.eventModal.querySelector('.modal-title').textContent = 'Create Event';
     elements.eventModal.hidden = false;
+
+    // Reset Radio Buttons
+    const defaultReg = document.querySelector('input[name="registrationMode"][value="instant"]');
+    const defaultWl = document.querySelector('input[name="waitlistMode"][value="manual"]');
+    if (defaultReg) defaultReg.checked = true;
+    if (defaultWl) defaultWl.checked = true;
+
+    renderQuestionEditor();
     loadEventTemplates();
 }
 
-async function loadEventTemplates() {
-    try {
-        const { data, error } = await supabase
-            .from('event_templates')
-            .select('*')
-            .order('category', { ascending: true });
-
-        if (error) throw error;
-
-        state.templates = data || [];
-
-        // Populate dropdown
-        elements.eventTemplate.innerHTML = '<option value="">-- Custom Event (Manual Slots) --</option>';
-        const categories = {};
-
-        data.forEach(tpl => {
-            if (!categories[tpl.category]) categories[tpl.category] = [];
-            categories[tpl.category].push(tpl);
-        });
-
-        Object.keys(categories).forEach(cat => {
-            const group = document.createElement('optgroup');
-            group.label = cat.charAt(0).toUpperCase() + cat.slice(1).replace('_', ' ');
-
-            categories[cat].forEach(tpl => {
-                const option = document.createElement('option');
-                option.value = tpl.id;
-                option.textContent = `${tpl.icon || '📋'} ${tpl.name}`;
-                group.appendChild(option);
-            });
-
-            elements.eventTemplate.appendChild(group);
-        });
-    } catch (error) {
-        console.error('Failed to load templates:', error);
-    }
-}
-
-function openEditEventModal(eventId) {
+async function openEditEventModal(eventId) {
     const event = state.events.find(e => e.id === eventId);
     if (!event) return;
 
@@ -375,8 +392,117 @@ function openEditEventModal(eventId) {
     elements.eventStartDate.value = event.dates_config?.start;
     elements.eventEndDate.value = event.dates_config?.end;
 
+    // Set settings
+    elements.feedbackEnabled.checked = event.feedback_enabled !== false;
+    elements.certificatesEnabled.checked = event.certificates_enabled === true;
+    elements.eventPaused.checked = event.paused === true;
+    elements.waitlistEnabled.checked = event.waitlist_enabled === true;
+    elements.checkinRequired.checked = event.checkin_required !== false;
+    elements.coordinatorEmail.value = event.coordinator_email || '';
+    elements.checkinOpenOffset.value = event.checkin_open_offset_minutes || 30;
+    elements.checkinCloseOffset.value = event.checkin_close_offset_minutes || 120;
+
+    // Advanced Settings
+    const regMode = event.registration_mode || 'instant';
+    const wlMode = event.waitlist_mode || 'manual';
+    const regRadio = document.querySelector(`input[name="registrationMode"][value="${regMode}"]`);
+    const wlRadio = document.querySelector(`input[name="waitlistMode"][value="${wlMode}"]`);
+    if (regRadio) regRadio.checked = true;
+    if (wlRadio) wlRadio.checked = true;
+
+    // Load questions
+    await loadEventQuestions(eventId);
+
     elements.eventModal.querySelector('.modal-title').textContent = 'Edit Event';
     elements.eventModal.hidden = false;
+}
+
+async function loadEventQuestions(eventId) {
+    try {
+        const { data, error } = await supabase.rpc('admin_get_event_questions', {
+            p_password: ADMIN_PASSWORD,
+            p_event_id: eventId
+        });
+        if (error) throw error;
+        state.eventQuestions = data || [];
+        renderQuestionEditor();
+    } catch (e) {
+        console.error('Error loading questions:', e);
+    }
+}
+
+function renderQuestionEditor() {
+    if (!elements.questionsEditor) return;
+
+    if (state.eventQuestions.length === 0) {
+        elements.questionsEditor.innerHTML = '<p class="empty-text">No custom feedback questions yet.</p>';
+        return;
+    }
+
+    elements.questionsEditor.innerHTML = state.eventQuestions.map((q, i) => `
+        <div class="question-row" data-index="${i}">
+            <div class="question-main">
+                <input type="text" class="form-input q-text" value="${q.question_text}" placeholder="Question text" required>
+                <select class="form-input q-type">
+                    <option value="stars" ${q.question_type === 'stars' ? 'selected' : ''}>Stars (1-5)</option>
+                    <option value="rating" ${q.question_type === 'rating' ? 'selected' : ''}>Rating (1-10)</option>
+                    <option value="text" ${q.question_type === 'text' ? 'selected' : ''}>Long Text</option>
+                </select>
+            </div>
+            <div class="question-meta">
+                <label class="checkbox-label">
+                    <input type="checkbox" class="q-required" ${q.is_required ? 'checked' : ''}>
+                    <span>Required</span>
+                </label>
+                <button type="button" class="action-btn action-btn--danger btn-remove-q" onclick="removeQuestion(${i})">×</button>
+            </div>
+        </div>
+    `).join('');
+
+    // Attach local listeners to inputs to update state
+    elements.questionsEditor.querySelectorAll('.question-row').forEach(row => {
+        const index = row.dataset.index;
+        row.querySelector('.q-text').addEventListener('input', (e) => {
+            state.eventQuestions[index].question_text = e.target.value;
+        });
+        row.querySelector('.q-type').addEventListener('change', (e) => {
+            state.eventQuestions[index].question_type = e.target.value;
+        });
+        row.querySelector('.q-required').addEventListener('change', (e) => {
+            state.eventQuestions[index].is_required = e.target.checked;
+        });
+    });
+}
+
+window.removeQuestion = function (index) {
+    state.eventQuestions.splice(index, 1);
+    renderQuestionEditor();
+};
+
+function addQuestion() {
+    state.eventQuestions.push({
+        question_text: '',
+        question_type: 'stars',
+        display_order: state.eventQuestions.length + 1,
+        is_required: true
+    });
+    renderQuestionEditor();
+}
+
+async function saveEventQuestions(eventId) {
+    if (state.eventQuestions.length === 0) return;
+
+    try {
+        const { error } = await supabase.rpc('admin_update_event_questions', {
+            p_password: ADMIN_PASSWORD,
+            p_event_id: eventId,
+            p_questions: state.eventQuestions
+        });
+        if (error) throw error;
+    } catch (e) {
+        console.error('Error saving questions:', e);
+        alert('Failed to save feedback questions');
+    }
 }
 
 function closeEventModal() {
@@ -409,10 +535,23 @@ async function handleCreateEventSubmit(e) {
                 p_organization_name: orgName,
                 p_contact_person: person,
                 p_contact_whatsapp: whatsapp,
-                p_active: true // Keep active for now
+                p_active: true,
+                p_feedback_enabled: elements.feedbackEnabled.checked,
+                p_certificates_enabled: elements.certificatesEnabled.checked,
+                p_paused: elements.eventPaused.checked,
+                p_waitlist_enabled: elements.waitlistEnabled.checked,
+                p_checkin_required: elements.checkinRequired.checked,
+                p_coordinator_email: elements.coordinatorEmail.value || null,
+                p_checkin_open_offset_minutes: parseInt(elements.checkinOpenOffset.value),
+                p_checkin_close_offset_minutes: parseInt(elements.checkinCloseOffset.value),
+                p_registration_mode: document.querySelector('input[name="registrationMode"]:checked')?.value || 'instant',
+                p_waitlist_mode: document.querySelector('input[name="waitlistMode"]:checked')?.value || 'manual'
             });
 
             if (error) throw error;
+
+            // Update questions
+            await saveEventQuestions(state.editingEventId);
 
             closeEventModal();
             await loadEvents();
@@ -431,12 +570,25 @@ async function handleCreateEventSubmit(e) {
                     active: true,
                     feedback_enabled: elements.feedbackEnabled.checked,
                     certificates_enabled: elements.certificatesEnabled.checked,
-                    paused: elements.eventPaused.checked
+                    checkin_required: elements.checkinRequired.checked,
+                    waitlist_enabled: elements.waitlistEnabled.checked,
+                    paused: elements.eventPaused.checked,
+                    coordinator_email: elements.coordinatorEmail.value || null,
+                    checkin_open_offset_minutes: parseInt(elements.checkinOpenOffset.value),
+                    checkin_close_offset_minutes: parseInt(elements.checkinCloseOffset.value),
+                    registration_mode: document.querySelector('input[name="registrationMode"]:checked')?.value || 'instant',
+                    waitlist_mode: document.querySelector('input[name="waitlistMode"]:checked')?.value || 'manual'
                 })
                 .select()
                 .single();
 
             if (eventError) throw eventError;
+
+            // Auto-create default feedback questions if enabled
+            const feedbackEnabled = elements.feedbackEnabled.checked;
+            if (feedbackEnabled) {
+                await supabase.rpc('create_default_feedback_questions', { p_event_id: eventData.id });
+            }
 
             // 2. Generate Slots for this event
             const templateId = elements.eventTemplate.value;
@@ -503,6 +655,43 @@ async function generateDefaultSlots(eventId, startStr, endStr) {
     }
 }
 
+async function loadEventTemplates() {
+    try {
+        const { data, error } = await supabase
+            .from('event_templates')
+            .select('*')
+            .order('category')
+            .order('name');
+
+        if (error) throw error;
+
+        state.templates = data;
+
+        // Group by category
+        const categories = {};
+        data.forEach(t => {
+            if (!categories[t.category]) categories[t.category] = [];
+            categories[t.category].push(t);
+        });
+
+        // Render options
+        elements.eventTemplate.innerHTML = '<option value="">-- Select Event Template --</option>';
+        Object.keys(categories).forEach(cat => {
+            const group = document.createElement('optgroup');
+            group.label = cat.charAt(0).toUpperCase() + cat.slice(1);
+            categories[cat].forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.textContent = `${t.icon || ''} ${t.name}`;
+                group.appendChild(opt);
+            });
+            elements.eventTemplate.appendChild(group);
+        });
+    } catch (e) {
+        console.error('Error loading templates:', e);
+    }
+}
+
 async function applyTemplateToEvent(eventId, templateId, startStr, endStr) {
     const template = state.templates.find(t => t.id === templateId);
     if (!template) {
@@ -531,7 +720,10 @@ async function applyTemplateToEvent(eventId, templateId, startStr, endStr) {
                 end_time: slot.end,
                 capacity: slot.capacity || 10,
                 registered_count: 0,
-                station: slot.station || null
+                station: slot.station || null,
+                slot_type: template.slot_config?.slot_type || 'standard',
+                sales_config: template.slot_config?.sales_config || null,
+                report_required: template.slot_config?.report_required || false
             });
         });
     }
@@ -636,6 +828,15 @@ async function loadEventDetails(eventId) {
                 return reg.shifts.some(s => eventSlotIds.has(s.slot_id));
             });
         }
+
+        // Load all data concurrently
+        await Promise.all([
+            loadSlots(),
+            loadRegistrations(),
+            loadReports(),
+            loadFeedbackSummary(),
+            loadWaitlist()
+        ]);
 
         renderStats();
         renderDateFilter();
@@ -749,38 +950,95 @@ function renderOverview() {
     const uniqueDates = [...new Set(state.slots.map(s => s.date))].sort();
 
     elements.overviewGrid.innerHTML = uniqueDates.map(dateStr => {
-        const dateSlots = state.slots.filter(s => s.date === dateStr);
+        // Filter and Sort slots by time
+        const dateSlots = state.slots
+            .filter(s => s.date === dateStr)
+            .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
-        const shiftsHtml = dateSlots.map(slot => {
+        // Helper to render a list of slots
+        const renderSlotGroup = (slots) => slots.map(slot => {
             const remaining = slot.capacity - slot.registered_count;
             let countClass = 'available';
             if (remaining === 0) countClass = 'full';
             else if (remaining <= 5) countClass = 'limited';
 
             // Find volunteers for this slot
+            // We need to fetch 'is_shift_leader' which is on the join table.
+            // Currently state.registrations is a flat list of registrations with 'shifts' array.
+            // We might need to ensure 'shifts' array in registrations includes 'is_shift_leader'.
+            // For now, assuming the backend for 'admin_get_registrations' returns it.
+            // Let's verify admin_get_registrations RPC return structure or if we need to update it.
+            // Actually, admin_get_event_details returns registrations with shifts.
+
             const volunteers = state.registrations.filter(reg =>
                 reg.shifts?.some(s => s.slot_id === slot.id)
-            ).map(reg => reg.full_name);
+            ).map(reg => {
+                const shiftInfo = reg.shifts.find(s => s.slot_id === slot.id);
+                const isLeader = shiftInfo?.is_shift_leader;
+                return { ...reg, isLeader };
+            });
 
             return `
                 <div class="overview-shift">
-                    <span class="overview-shift-name">${slot.shift_name} (${formatTime(slot.start_time)} - ${formatTime(slot.end_time)})</span>
+                    <div class="overview-shift-header">
+                        <span class="overview-shift-name">${slot.shift_name}</span>
+                        ${slot.station ? `<span class="status-badge status-badge--flagged">${slot.station}</span>` : ''}
+                        <button class="icon-btn-small" onclick="window.openAddVolunteerModal('${slot.id}')" title="Manual Add Volunteer">➕</button>
+                    </div>
+                    <div class="overview-shift-time">
+                        ${formatTime(slot.start_time)} - ${formatTime(slot.end_time)}
+                    </div>
                     <span class="overview-shift-count overview-shift-count--${countClass}">
                         ${slot.registered_count}/${slot.capacity}
                     </span>
+                 
+                    ${volunteers.length > 0 ? `
+                        <div class="overview-volunteers">
+                            ${volunteers.map(v => `
+                                <div class="overview-volunteer">
+                                    <span class="volunteer-name">• ${v.full_name}</span>
+                                    <span class="leader-toggle ${v.isLeader ? 'active' : ''}" 
+                                          title="${v.isLeader ? 'Remove Leader' : 'Make Shift Leader'}"
+                                          onclick="window.toggleShiftLeader('${v.id}', '${slot.id}')">
+                                        ${v.isLeader ? '👑' : '☆'}
+                                    </span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
                 </div>
-                ${volunteers.length > 0 ? `
-                    <div class="overview-volunteers">
-                        ${volunteers.map(name => `<div class="overview-volunteer">• ${name}</div>`).join('')}
-                    </div>
-                ` : ''}
             `;
         }).join('');
+
+        // Group by station
+        const stations = {};
+        let hasStations = false;
+        dateSlots.forEach(slot => {
+            const st = slot.station || 'General';
+            if (slot.station) hasStations = true;
+            if (!stations[st]) stations[st] = [];
+            stations[st].push(slot);
+        });
+
+        let contentHtml = '';
+        if (!hasStations) {
+            contentHtml = renderSlotGroup(dateSlots);
+        } else {
+            const stationKeys = Object.keys(stations).sort();
+            contentHtml = stationKeys.map(st => `
+                <div class="station-overview-group">
+                    <h4 class="station-title text-small">${st === 'General' ? 'General Shifts' : st}</h4>
+                    <div class="overview-shifts">
+                        ${renderSlotGroup(stations[st])}
+                    </div>
+                </div>
+            `).join('');
+        }
 
         return `
             <div class="overview-card">
                 <div class="overview-date">${formatDateFull(dateStr)}</div>
-                <div class="overview-shifts">${shiftsHtml}</div>
+                <div class="overview-shifts-container">${contentHtml}</div>
             </div>
         `;
     }).join('');
@@ -804,11 +1062,13 @@ function renderSlots() {
 
         const slotsHtml = dateSlots.map(slot => {
             const stationBadge = slot.station ? `<span class="slot-badge">${slot.station}</span>` : '';
+            const typeBadge = slot.slot_type === 'sales' ? '<span class="slot-badge slot-badge--sales">Sales</span>' : '';
             return `
                 <div class="slot-item" data-slot-id="${slot.id}">
                     <div class="slot-info">
                         <span class="slot-time">${formatTime(slot.start_time)} - ${formatTime(slot.end_time)}</span>
                         ${stationBadge}
+                        ${typeBadge}
                         <span class="slot-capacity">${slot.registered_count}/${slot.capacity}</span>
                     </div>
                     <button class="slot-delete-btn" onclick="window.handleDeleteSlot('${slot.id}')" title="Delete Slot">🗑️</button>
@@ -1166,6 +1426,333 @@ async function sendReminders() {
 
 
 // =====================================================
+// REPORTS & FEEDBACK LOGIC
+// =====================================================
+
+// Feedback Summary
+async function loadFeedbackSummary() {
+    if (!state.activeEventId) return;
+
+    // Check if feedback is enabled for this event
+    const event = state.events.find(e => e.id === state.activeEventId);
+    if (!event || !event.feedback_enabled) {
+        if (elements.feedbackResults) elements.feedbackResults.innerHTML = '<p class="text-muted">Feedback is disabled for this event.</p>';
+        return;
+    }
+
+    if (elements.feedbackResults) elements.feedbackResults.innerHTML = '<p class="table-loading">Loading feedback...</p>';
+
+    try {
+        const { data, error } = await supabase.rpc('get_feedback_summary', {
+            p_password: ADMIN_PASSWORD,
+            p_event_id: state.activeEventId
+        });
+
+        if (error) throw error;
+
+        renderFeedbackSummary(data || { total_responses: 0, questions: [] });
+    } catch (e) {
+        console.error('Feedback error:', e);
+        if (elements.feedbackResults) elements.feedbackResults.innerHTML = '<p class="error-msg">Failed to load feedback.</p>';
+    }
+}
+
+function renderFeedbackSummary(summary) {
+    if (!elements.feedbackResults) return;
+
+    const totalCountEl = document.getElementById('totalFeedbackCount');
+    if (totalCountEl) totalCountEl.textContent = summary.total_responses;
+
+    if (summary.total_responses === 0) {
+        elements.feedbackResults.innerHTML = '<p class="table-empty">No feedback responses yet.</p>';
+        return;
+    }
+
+    elements.feedbackResults.innerHTML = summary.questions.map(q => {
+        let content = '';
+
+        if (q.question_type === 'stars' || q.question_type === 'rating') {
+            const avg = parseFloat(q.average_rating || 0).toFixed(1);
+            const max = q.question_type === 'stars' ? 5 : 10;
+            const icon = q.question_type === 'stars' ? '★' : '📊';
+            content = `
+                <div class="feedback-metric">
+                    <span class="metric-value">${avg}<span class="metric-max">/${max}</span></span>
+                    <span class="metric-icon">${icon}</span>
+                </div>
+            `;
+        } else {
+            // Freeform text
+            const responses = q.responses || [];
+            const validResponses = responses.filter(r => r); // Remove nulls
+            if (validResponses.length === 0) {
+                content = '<p class="text-muted text-small">No text responses.</p>';
+            } else {
+                content = `
+                    <div class="feedback-comments">
+                        ${validResponses.map(r => `<div class="comment-bubble">"${r}"</div>`).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        return `
+            <div class="feedback-card">
+                <h4 class="feedback-question">${q.question_text}</h4>
+                ${content}
+            </div>
+        `;
+    }).join('');
+}
+
+
+async function loadReports() {
+    if (!state.activeEventId) return;
+    elements.reportsTableBody.innerHTML = '<tr><td colspan="6" class="table-loading">Loading reports...</td></tr>';
+
+    try {
+        const { data, error } = await supabase.rpc('admin_get_shift_reports', {
+            p_password: ADMIN_PASSWORD,
+            p_event_id: state.activeEventId
+        });
+
+        if (error) throw error;
+
+        state.reports = (data.success ? data.data : []) || [];
+        renderReports();
+    } catch (e) {
+        console.error('Reports error:', e);
+        elements.reportsTableBody.innerHTML = '<tr><td colspan="6" class="error-msg">Failed to load reports.</td></tr>';
+    }
+}
+
+function renderReports() {
+    if (state.reports.length === 0) {
+        elements.reportsTableBody.innerHTML = '';
+        elements.reportsEmpty.hidden = false;
+        return;
+    }
+
+    elements.reportsEmpty.hidden = true;
+
+    // Stats
+    const total = state.reports.length;
+    const verified = state.reports.filter(r => r.status === 'verified').length;
+    const flagged = state.reports.filter(r => r.status === 'flagged').length;
+    const amount = state.reports.reduce((sum, r) => sum + (r.report_data?.total_amount || 0), 0);
+
+    elements.totalReportsCount.textContent = total;
+    elements.verifiedReportsCount.textContent = verified;
+    elements.flaggedReportsCount.textContent = flagged;
+    elements.totalSalesAmount.textContent = `$${amount.toFixed(2)}`;
+
+    elements.reportsTableBody.innerHTML = state.reports.map(report => {
+        const items = report.report_data?.items_sold || [];
+        const itemsHtml = items.map(i => `<div>${i.name}: ${i.quantity} ($${i.amount.toFixed(2)})</div>`).join('');
+
+        return `
+            <tr>
+                <td><strong>${formatDate(report.shift_date)}</strong><br>${report.shift_name}</td>
+                <td>${report.volunteer_name}</td>
+                <td><div class="report-items-cell">${itemsHtml}</div></td>
+                <td><strong>$${(report.report_data?.total_amount || 0).toFixed(2)}</strong></td>
+                <td><span class="status-badge status-badge--${report.status}">${report.status}</span></td>
+                <td><button class="action-icon-btn" onclick="alert('Verification logic coming soon')">👁️</button></td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// =====================================================
+// WAITLIST LOGIC
+// =====================================================
+
+async function loadWaitlist() {
+    if (!state.activeEventId) return;
+    elements.waitlistTableBody.innerHTML = '<tr><td colspan="6" class="table-loading">Loading waitlist...</td></tr>';
+    elements.waitlistSection.hidden = false;
+
+    try {
+        const { data, error } = await supabase.rpc('admin_get_waitlist', {
+            p_password: ADMIN_PASSWORD,
+            p_event_id: state.activeEventId
+        });
+
+        if (error) throw error;
+
+        state.waitlist = (data.success ? data.data : []) || [];
+        renderWaitlist();
+    } catch (e) {
+        console.error('Waitlist error:', e);
+        elements.waitlistTableBody.innerHTML = '<tr><td colspan="6" class="error-msg">Failed to load waitlist.</td></tr>';
+    }
+}
+
+function renderWaitlist() {
+    const summaryCard = (title, value, icon) => `
+        <div class="stats-card">
+            <div class="stats-card-value">${value}</div>
+            <div class="stats-card-label">${title}</div>
+            <div class="stats-card-icon">${icon}</div>
+        </div>
+    `;
+
+    // Render Stats
+    elements.waitlistStats.innerHTML = `
+        ${summaryCard('Total Waiting', state.waitlist.length, '⏳')}
+        ${summaryCard("Today's Shifts", state.waitlist.filter(w => w.date === new Date().toISOString().split('T')[0]).length, '📅')}
+        `;
+
+    if (state.waitlist.length === 0) {
+        elements.waitlistTableBody.innerHTML = '<tr><td colspan="6" class="empty-text">No one on the waitlist.</td></tr>';
+        return;
+    }
+
+    elements.waitlistTableBody.innerHTML = state.waitlist.map(w => `
+        < tr >
+            <td>#${w.position}</td>
+            <td><strong>${w.full_name}</strong></td>
+            <td>
+                <div>${w.phone}</div>
+                <div class="subtitle text-small">${w.email || ''}</div>
+            </td>
+            <td>
+                <div class="shift-badge shift-badge--waitlist">
+                    ${w.shift_name}
+                </div>
+                <div class="subtitle text-small">${formatDate(w.date)} • ${formatTime(w.start_time)}</div>
+            </td>
+            <td>${new Date(w.created_at).toLocaleDateString()}</td>
+            <td>
+                <button class="action-icon-btn" title="Promote to Slot" onclick="window.promoteFromWaitlist('${w.id}')">✅</button>
+                <button class="action-icon-btn delete-btn" title="Remove" onclick="window.removeFromWaitlist('${w.id}')">🗑️</button>
+            </td>
+        </tr >
+        `).join('');
+}
+
+// -----------------------------------------------------
+// Waitlist Actions
+// -----------------------------------------------------
+
+window.promoteFromWaitlist = async function (waitlistId) {
+    if (!confirm('Promote this volunteer to the slot? They will be registered immediately.')) return;
+
+    try {
+        const { data, error } = await supabase.rpc('admin_promote_waitlist_entry', {
+            p_password: ADMIN_PASSWORD,
+            p_waitlist_id: waitlistId
+        });
+
+        if (error) throw error;
+        if (!data.success) throw new Error(data.error);
+
+        alert('Success: ' + data.message);
+        loadWaitlist(); // Refresh list
+    } catch (e) {
+        console.error('Promote error:', e);
+        alert('Failed to promote: ' + e.message);
+    }
+};
+
+window.removeFromWaitlist = async function (waitlistId) {
+    if (!confirm('Remove this person from the waitlist? This cannot be undone.')) return;
+
+    try {
+        const { data, error } = await supabase.rpc('admin_remove_waitlist_entry', {
+            p_password: ADMIN_PASSWORD,
+            p_waitlist_id: waitlistId
+        });
+
+        if (error) throw error;
+        if (!data.success) throw new Error(data.error);
+
+        loadWaitlist(); // Refresh list
+    } catch (e) {
+        console.error('Remove error:', e);
+        alert('Failed to remove: ' + e.message);
+    }
+};
+
+// -----------------------------------------------------
+// Manual Registration & Shift Leaders
+// -----------------------------------------------------
+
+window.openAddVolunteerModal = function (slotId) {
+    state.activeSlotId = slotId;
+    const slot = state.slots.find(s => s.id === slotId);
+
+    // Create modal if not exists (or we can just reuse a simple prompt for now to be fast?)
+    // User requested "prepopulate", usually implies a form.
+    // Let's reuse the existing simple prompt approach or append a modal to DOM dynamically if easier.
+    // For better UX, let's inject a modal HTML if missing, or use a simple prompt for V1.
+    // Given the "WOW" factor requirement, let's look for a modal structure in index.html.
+    // We haven't added one yet. Let's add it via JS for now or just trust `elements` has it if we add to HTML.
+
+    // Let's assume we will add the modal HTML next.
+    if (elements.addVolunteerModal) {
+        elements.addVolunteerModal.hidden = false;
+        elements.addVolunteerSlotName.textContent = slot ? slot.shift_name : '';
+        elements.addVolunteerForm.reset();
+    } else {
+        alert('Modal not found. Please refresh.');
+    }
+};
+
+window.closeAddVolunteerModal = function () {
+    if (elements.addVolunteerModal) elements.addVolunteerModal.hidden = true;
+};
+
+window.handleManualAddSubmit = async function (e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const name = formData.get('fullName');
+    const phone = formData.get('phone');
+    const email = formData.get('email');
+
+    try {
+        const { data, error } = await supabase.rpc('admin_create_registration', {
+            p_password: ADMIN_PASSWORD,
+            p_event_id: state.activeEventId,
+            p_slot_id: state.activeSlotId,
+            p_full_name: name,
+            p_phone: phone,
+            p_email: email || null
+        });
+
+        if (error) throw error;
+        if (!data.success) throw new Error(data.error);
+
+        alert('Success: ' + data.message);
+        window.closeAddVolunteerModal();
+        loadEventDetails(state.activeEventId); // Refresh all data
+    } catch (e) {
+        console.error('Manual Add error:', e);
+        alert('Failed: ' + e.message);
+    }
+};
+
+
+window.toggleShiftLeader = async function (regId, slotId) {
+    try {
+        const { data, error } = await supabase.rpc('admin_toggle_shift_leader', {
+            p_password: ADMIN_PASSWORD,
+            p_registration_id: regId,
+            p_slot_id: slotId
+        });
+
+        if (error) throw error;
+        if (!data.success) throw new Error(data.error);
+
+        // Optimistic update or reload
+        loadEventDetails(state.activeEventId);
+    } catch (e) {
+        console.error('Leader toggle error:', e);
+        alert('Failed to toggle leader: ' + e.message);
+    }
+};
+
+// =====================================================
 // INITIALIZATION
 // =====================================================
 
@@ -1174,6 +1761,18 @@ function init() {
 
     // Global Listeners
     elements.authForm.addEventListener('submit', handleAuth);
+    elements.createEventBtn.addEventListener('click', openCreateEventModal);
+    elements.logoutBtn.addEventListener('click', handleLogout);
+    elements.eventForm.addEventListener('submit', handleCreateEventSubmit);
+
+    // ... existing listeners ...
+
+    // Add Volunteer Modal
+    if (elements.addVolunteerForm) {
+        elements.addVolunteerForm.addEventListener('submit', window.handleManualAddSubmit);
+    }
+    const closeAddVol = document.getElementById('closeAddVolunteerModal');
+    if (closeAddVol) closeAddVol.addEventListener('click', window.closeAddVolunteerModal);
     elements.createEventBtn.addEventListener('click', openCreateEventModal);
     elements.backToEventsBtn.addEventListener('click', showEventsList);
     elements.refreshBtn.addEventListener('click', handleRefresh);
@@ -1185,10 +1784,53 @@ function init() {
     elements.exportBtn.addEventListener('click', exportToCSV);
     elements.sendRemindersBtn.addEventListener('click', sendReminders);
 
+    // Reports & Feedback
+    if (elements.refreshReportsBtn) elements.refreshReportsBtn.addEventListener('click', loadReports);
+    if (elements.exportReportsBtn) elements.exportReportsBtn.addEventListener('click', () => alert('Exporting reports logic coming soon'));
+
+    // Feedback Listeners
+    if (elements.refreshFeedbackBtn) elements.refreshFeedbackBtn.addEventListener('click', loadFeedbackSummary);
+    if (elements.refreshWaitlistBtn) elements.refreshWaitlistBtn.addEventListener('click', loadWaitlist);
+
     // Event Modal
     elements.eventModalClose.addEventListener('click', closeEventModal);
     elements.eventCancelBtn.addEventListener('click', closeEventModal);
     elements.eventForm.addEventListener('submit', handleCreateEventSubmit);
+    if (elements.addQuestionBtn) elements.addQuestionBtn.addEventListener('click', addQuestion);
+
+    // Template change listener
+    // Template change listener
+    elements.eventTemplate.addEventListener('change', (e) => {
+        const templateId = e.target.value;
+
+        if (!templateId) {
+            elements.templatePreview.hidden = true;
+            return;
+        }
+
+        const template = state.templates.find(t => t.id === templateId);
+        if (!template) return;
+
+        // Show Preview
+        elements.templatePreview.hidden = false;
+        elements.templateIcon.textContent = template.icon || '📅';
+        elements.templateName.textContent = template.name;
+        elements.templateDesc.textContent = template.description || '';
+
+        const slotConfig = template.slot_config?.slots || [];
+        elements.templateSlotCount.textContent = slotConfig.length;
+
+        const uniqueStations = [...new Set(slotConfig.map(s => s.station).filter(Boolean))];
+        elements.templateStationCount.textContent = uniqueStations.length;
+
+        // Auto-fill settings
+        const settings = template.default_settings || {};
+        if (settings.feedback_enabled !== undefined) elements.feedbackEnabled.checked = settings.feedback_enabled;
+        if (settings.certificates_enabled !== undefined) elements.certificatesEnabled.checked = settings.certificates_enabled;
+        if (settings.checkin_required !== undefined) elements.checkinRequired.checked = settings.checkin_required;
+        if (settings.paused !== undefined) elements.eventPaused.checked = settings.paused;
+        if (settings.waitlist_enabled !== undefined) elements.waitlistEnabled.checked = settings.waitlist_enabled;
+    });
 
     // Edit Modal
     elements.editModalClose.addEventListener('click', closeEditModal);

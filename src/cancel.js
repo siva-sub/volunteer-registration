@@ -31,6 +31,15 @@ const elements = {
     cancelBtn: document.getElementById('cancelBtn'),
     successSection: document.getElementById('successSection'),
     successMessage: document.getElementById('successMessage'),
+    // Phone Search
+    searchSection: document.getElementById('searchSection'),
+    phoneSearchForm: document.getElementById('phoneSearchForm'),
+    searchPhone: document.getElementById('searchPhone'),
+    searchSubmitBtn: document.getElementById('searchSubmitBtn'),
+    resultsSection: document.getElementById('resultsSection'),
+    resultsCount: document.getElementById('resultsCount'),
+    resultsList: document.getElementById('resultsList'),
+    backToSearchBtn: document.getElementById('backToSearchBtn'),
     // Confirmation modal
     confirmModal: document.getElementById('confirmModal'),
     cancelCount: document.getElementById('cancelCount'),
@@ -64,6 +73,8 @@ function showSection(section) {
     elements.errorSection.hidden = true;
     elements.registrationSection.hidden = true;
     elements.successSection.hidden = true;
+    elements.searchSection.hidden = true;
+    elements.resultsSection.hidden = true;
 
     section.hidden = false;
 }
@@ -79,7 +90,7 @@ async function init() {
     const token = params.get('token');
 
     if (!token) {
-        showError('Missing Token', 'No cancellation token provided in the URL.');
+        showSection(elements.searchSection);
         return;
     }
 
@@ -145,6 +156,68 @@ function renderRegistration(data) {
     elements.slotsList.addEventListener('change', updateCancelButton);
 }
 
+async function handlePhoneSearch(e) {
+    e.preventDefault();
+    const phone = elements.searchPhone.value.trim();
+    if (!phone) return;
+
+    elements.searchSubmitBtn.disabled = true;
+    elements.searchSubmitBtn.textContent = 'Searching...';
+
+    try {
+        const { data, error } = await supabase.rpc('get_registrations_by_phone', {
+            p_phone: phone
+        });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            alert('No registrations found for this phone number.');
+            return;
+        }
+
+        if (data.length === 1) {
+            // Jump directly to management
+            window.location.href = `?token=${data[0].cancel_token}`;
+            return;
+        }
+
+        // Show multiple results
+        renderResults(data);
+    } catch (error) {
+        console.error('Search failed:', error);
+        alert('Search failed. Please try again.');
+    } finally {
+        elements.searchSubmitBtn.disabled = false;
+        elements.searchSubmitBtn.textContent = 'Search Registrations';
+    }
+}
+
+function renderResults(registrations) {
+    elements.resultsCount.textContent = `Found ${registrations.length} Registrations`;
+    elements.resultsList.innerHTML = registrations.map(reg => {
+        const dateStr = new Date(reg.created_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+        return `
+            <div class="result-card" onclick="window.location.href='?token=${reg.cancel_token}'">
+                <div class="result-card-header">
+                    <strong>${reg.full_name}</strong>
+                    <span class="result-card-date">Registered ${dateStr}</span>
+                </div>
+                <div class="result-card-event">${reg.event_title}</div>
+                <div class="result-card-slots">
+                    ${reg.slots.length} shift(s)
+                </div>
+                <div class="result-card-action">Manage Shifts &rarr;</div>
+            </div>
+        `;
+    }).join('');
+    showSection(elements.resultsSection);
+}
+
 function updateCancelButton() {
     const checked = document.querySelectorAll('input[name="slot"]:checked');
     elements.cancelBtn.disabled = checked.length === 0;
@@ -177,6 +250,12 @@ async function handleCancel(e) {
 
 elements.cancelForm.addEventListener('submit', handleCancel);
 
+// Phone search
+elements.phoneSearchForm.addEventListener('submit', handlePhoneSearch);
+elements.backToSearchBtn.addEventListener('click', () => {
+    showSection(elements.searchSection);
+});
+
 // Modal event handlers
 elements.confirmCancelNo.addEventListener('click', () => {
     elements.confirmModal.hidden = true;
@@ -207,6 +286,31 @@ elements.confirmCancelYes.addEventListener('click', async () => {
             elements.successMessage.textContent = 'All your shifts have been cancelled.';
         } else {
             elements.successMessage.textContent = `${data.cancelled_count} shift(s) cancelled.`;
+        }
+
+        // Trigger Cancellation Email
+        const cancelledSlots = registrationData.slots.filter(s => slotIds.includes(s.slot_id));
+        if (registrationData.registration.email) {
+            fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({
+                    type: 'cancellation',
+                    name: registrationData.registration.full_name,
+                    email: registrationData.registration.email,
+                    slots: cancelledSlots.map(s => ({
+                        date: s.date,
+                        shift_name: s.shift_name
+                    })),
+                    event_details: {
+                        title: registrationData.registration.event_title,
+                        organization_name: registrationData.registration.organization_name || 'Sri Thendayuthapani Temple'
+                    }
+                })
+            }).catch(err => console.error('Cancellation email failed', err));
         }
 
         showSection(elements.successSection);

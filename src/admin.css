@@ -984,3 +984,115 @@
     background: #FFF3E0;
     color: #E65100;
 }
+
+/* =====================================================
+   REPORTS & FEEDBACK LAYOUT
+   ===================================================== */
+
+.reports-section,
+.feedback-section {
+    margin-bottom: var(--space-10);
+}
+
+.reports-summary,
+.feedback-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+}
+
+/* Summary Card Highlights */
+.summary-card--success {
+    border-left: 4px solid var(--color-success);
+}
+
+.summary-card--warning {
+    border-left: 4px solid var(--color-warning);
+}
+
+.summary-card--primary {
+    border-left: 4px solid var(--color-primary);
+}
+
+/* Feedback Results Grid */
+.feedback-results {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: var(--space-6);
+}
+
+@media (max-width: 600px) {
+    .feedback-results {
+        grid-template-columns: 1fr;
+    }
+}
+
+.feedback-question-card {
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    box-shadow: var(--shadow-sm);
+}
+
+.feedback-question-title {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    margin-bottom: var(--space-4);
+    color: var(--color-text);
+}
+
+/* Score Visuals */
+.feedback-score-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.feedback-score-value {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-primary);
+    min-width: 60px;
+}
+
+.feedback-score-bar {
+    flex-grow: 1;
+    height: 12px;
+    background: var(--color-secondary-light);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-primary-light), var(--color-primary));
+    border-radius: var(--radius-full);
+}
+
+/* Text List Visuals */
+.feedback-text-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: var(--space-2);
+}
+
+.feedback-text-item {
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+    padding: var(--space-3);
+    background: var(--color-secondary-light);
+    border-radius: var(--radius-md);
+    line-height: 1.5;
+    border-left: 3px solid var(--color-border);
+}
+
+.report-items-cell {
+    font-size: var(--font-size-xs);
+    line-height: 1.4;
+    color: var(--color-text-muted);
+}

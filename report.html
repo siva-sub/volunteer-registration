@@ -4,276 +4,297 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shift Report | Volunteer Registration</title>
+    <meta name="description" content="Submit your end-of-shift sales report">
+    <title>Shift Report | Sri Thendayuthapani Temple</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./src/styles.css">
     <style>
-        .report-container {
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-
-        .report-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
-        .report-header h1 {
-            color: var(--color-primary);
-            font-size: 1.5rem;
-            margin-bottom: 8px;
-        }
-
-        .report-info {
-            background: var(--color-surface);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 24px;
-        }
-
-        .report-info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--color-border);
-        }
-
-        .report-info-row:last-child {
-            border-bottom: none;
-        }
-
-        .report-info-label {
-            color: var(--color-text-muted);
-            font-size: 0.875rem;
-        }
-
-        .report-info-value {
-            font-weight: 600;
-        }
-
+        /* Specific styles for report items that aren't in styles.css yet */
         .sales-items {
-            margin-bottom: 24px;
+            margin-bottom: var(--space-6);
         }
 
         .sales-item {
-            background: var(--color-surface);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
+            background: var(--color-white);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            margin-bottom: var(--space-3);
         }
 
         .sales-item-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: var(--space-3);
         }
 
         .sales-item-name {
             font-weight: 600;
-            font-size: 1rem;
+            color: var(--color-text);
         }
 
         .sales-item-price {
+            font-size: var(--font-size-xs);
             color: var(--color-text-muted);
-            font-size: 0.875rem;
+            background: var(--color-secondary-light);
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
         }
 
         .sales-item-inputs {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            gap: var(--space-3);
         }
 
         .sales-input-group label {
             display: block;
-            font-size: 0.75rem;
+            font-size: var(--font-size-xs);
             color: var(--color-text-muted);
-            margin-bottom: 4px;
+            margin-bottom: var(--space-1);
         }
 
         .sales-input-group input {
             width: 100%;
-            padding: 10px 12px;
+            padding: var(--space-2) var(--space-3);
             border: 1px solid var(--color-border);
-            border-radius: 8px;
-            font-size: 1rem;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
         }
 
         .total-section {
-            background: linear-gradient(135deg, var(--color-primary) 0%, #6B4423 100%);
-            color: white;
-            border-radius: 12px;
-            padding: 20px;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: var(--color-white);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: var(--space-6);
+            box-shadow: var(--shadow-md);
         }
 
         .total-label {
-            font-size: 0.875rem;
+            font-size: var(--font-size-sm);
             opacity: 0.9;
+            margin-bottom: var(--space-1);
         }
 
         .total-amount {
-            font-size: 2rem;
+            font-size: var(--font-size-3xl);
             font-weight: 700;
         }
 
         .notes-section {
-            margin-bottom: 24px;
+            margin-bottom: var(--space-6);
         }
 
         .notes-section label {
             display: block;
+            font-size: var(--font-size-sm);
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: var(--space-2);
         }
 
         .notes-section textarea {
             width: 100%;
-            padding: 12px;
+            padding: var(--space-3);
             border: 1px solid var(--color-border);
-            border-radius: 8px;
-            min-height: 80px;
+            border-radius: var(--radius-md);
+            min-height: 100px;
             font-family: inherit;
             resize: vertical;
         }
 
-        .submit-btn {
-            width: 100%;
-            padding: 16px;
-            background: var(--color-accent);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
+        /* Spinner for report */
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto var(--space-3);
         }
 
-        .submit-btn:hover {
-            background: var(--color-accent-dark);
-        }
-
-        .submit-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .state-section {
-            text-align: center;
-            padding: 48px 24px;
-        }
-
-        .state-icon {
-            font-size: 3rem;
-            margin-bottom: 16px;
-        }
-
-        .state-title {
-            font-size: 1.25rem;
-            color: var(--color-primary);
-            margin-bottom: 8px;
-        }
-
-        .state-message {
-            color: var(--color-text-muted);
-        }
-
-        .not-required-notice {
-            background: #E8F5E9;
-            border-radius: 12px;
-            padding: 16px;
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        .not-required-notice p {
-            color: #4A7C59;
-            margin: 0;
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="report-container">
-        <!-- Loading State -->
-        <div id="loadingState" class="state-section">
-            <div class="state-icon">⏳</div>
-            <p class="state-title">Loading...</p>
-        </div>
-
-        <!-- Error State -->
-        <div id="errorState" class="state-section" hidden>
-            <div class="state-icon">❌</div>
-            <p class="state-title">Something went wrong</p>
-            <p class="state-message" id="errorMessage">Please try again.</p>
-        </div>
-
-        <!-- Already Submitted State -->
-        <div id="submittedState" class="state-section" hidden>
-            <div class="state-icon">✅</div>
-            <p class="state-title">Report Already Submitted</p>
-            <p class="state-message">Thank you! Your shift report has already been recorded.</p>
-        </div>
-
-        <!-- Success State -->
-        <div id="successState" class="state-section" hidden>
-            <div class="state-icon">🎉</div>
-            <p class="state-title">Report Submitted!</p>
-            <p class="state-message">Thank you for submitting your shift report. The admin will review it shortly.</p>
-        </div>
-
-        <!-- Report Form -->
-        <div id="reportForm" hidden>
-            <div class="report-header">
-                <div style="font-size: 2rem; margin-bottom: 8px;">📊</div>
-                <h1>Shift Report</h1>
-                <p style="color: var(--color-text-muted); font-size: 0.875rem;">Submit your end-of-shift sales report
-                </p>
-            </div>
-
-            <div class="report-info">
-                <div class="report-info-row">
-                    <span class="report-info-label">Volunteer</span>
-                    <span class="report-info-value" id="volunteerName">-</span>
-                </div>
-                <div class="report-info-row">
-                    <span class="report-info-label">Shift</span>
-                    <span class="report-info-value" id="shiftName">-</span>
-                </div>
-                <div class="report-info-row">
-                    <span class="report-info-label">Date</span>
-                    <span class="report-info-value" id="shiftDate">-</span>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <div class="temple-icon">🙏</div>
+                    <h1 class="header-title">Shift Report</h1>
+                    <p class="header-subtitle">Submit your end-of-shift sales report</p>
                 </div>
             </div>
+        </header>
 
-            <!-- Not Required Notice (shown when report is optional) -->
-            <div id="notRequiredNotice" class="not-required-notice" hidden>
-                <p>📝 Reporting is <strong>optional</strong> for this shift, but appreciated!</p>
+        <main class="main">
+            <div class="container">
+                <!-- Loading State -->
+                <section id="loadingState">
+                    <div class="loading-card">
+                        <div class="spinner"></div>
+                        <p>Loading report form...</p>
+                    </div>
+                </section>
+
+                <!-- Error State -->
+                <section id="errorState" hidden>
+                    <div class="error-card">
+                        <div class="error-icon">⚠️</div>
+                        <h3>Something went wrong</h3>
+                        <p id="errorMessage" class="error-details">Please try again.</p>
+                        <a href="/" class="register-another-btn"
+                            style="display: inline-block; text-decoration: none; margin-top: 16px;">Return to Home</a>
+                    </div>
+                </section>
+
+                <!-- Already Submitted State -->
+                <section id="submittedState" hidden>
+                    <div class="info-card">
+                        <div class="info-icon">✅</div>
+                        <h3>Report Already Submitted</h3>
+                        <p class="info-details">Thank you! Your shift report has already been recorded.</p>
+                        <a href="/" class="register-another-btn"
+                            style="display: inline-block; text-decoration: none; margin-top: 16px;">Return to Home</a>
+                    </div>
+                </section>
+
+                <!-- Success State -->
+                <section id="successState" hidden>
+                    <div class="success-card">
+                        <div class="success-icon">✓</div>
+                        <h3 class="success-title">Report Submitted!</h3>
+                        <p class="success-text">Thank you for submitting your shift report. The admin will review it
+                            shortly.</p>
+                        <a href="/" class="register-another-btn"
+                            style="display: inline-block; text-decoration: none;">Return to Home</a>
+                    </div>
+                </section>
+
+                <!-- Report Form -->
+                <section id="reportForm" hidden>
+                    <div class="intro-card" style="margin-bottom: var(--space-6);">
+                        <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+                            <div
+                                style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2);">
+                                <span
+                                    style="color: var(--color-text-muted); font-size: var(--font-size-sm);">Volunteer</span>
+                                <span id="volunteerName" style="font-weight: 600;">-</span>
+                            </div>
+                            <div
+                                style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2);">
+                                <span
+                                    style="color: var(--color-text-muted); font-size: var(--font-size-sm);">Shift</span>
+                                <span id="shiftName" style="font-weight: 600;">-</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span
+                                    style="color: var(--color-text-muted); font-size: var(--font-size-sm);">Date</span>
+                                <span id="shiftDate" style="font-weight: 600;">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Not Required Notice -->
+                    <div id="notRequiredNotice" class="info-note" style="margin-bottom: var(--space-6);" hidden>
+                        <p>📝 Reporting is <strong>optional</strong> for this shift.</p>
+                    </div>
+
+                    <!-- Sales Items -->
+                    <h3 style="margin-bottom: var(--space-3);">1. Sales Items</h3>
+                    <div class="sales-items" id="salesItems">
+                        <!-- Dynamically populated -->
+                    </div>
+
+                    <div class="divider"
+                        style="height: 1px; background: var(--color-border); margin: var(--space-6) 0;"></div>
+
+                    <!-- Cash Handler -->
+                    <h3 style="margin-bottom: var(--space-3);">2. Cash Verification</h3>
+                    <div class="card" style="padding: var(--space-4); margin-bottom: var(--space-6);">
+
+                        <!-- Reference Values -->
+                        <div
+                            style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-bottom: var(--space-4);">
+                            <div>
+                                <label
+                                    style="display: block; font-size: var(--font-size-xs); color: var(--color-text-muted);">Initial
+                                    Float</label>
+                                <div class="input-with-icon">
+                                    <span
+                                        style="position: absolute; left: 12px; top: 10px; color: var(--color-text-muted);">$</span>
+                                    <input type="number" id="startFloat" value="0.00" step="0.01"
+                                        style="padding-left: 24px; font-weight: 600;">
+                                </div>
+                            </div>
+                            <div>
+                                <label
+                                    style="display: block; font-size: var(--font-size-xs); color: var(--color-text-muted);">Expected
+                                    Sales</label>
+                                <div id="expectedSalesDisplay"
+                                    style="padding: 10px 0; font-weight: 600; font-size: 1.1em;">$0.00</div>
+                            </div>
+                        </div>
+
+                        <!-- Big Total -->
+                        <div
+                            style="background: var(--color-surface-alt); padding: var(--space-3); border-radius: var(--radius-md); margin-bottom: var(--space-4);">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 600;">Expected Cash Total</span>
+                                <span id="expectedTotal"
+                                    style="font-weight: 700; font-size: 1.25em; color: var(--color-primary);">$0.00</span>
+                            </div>
+                            <div
+                                style="font-size: var(--font-size-xs); color: var(--color-text-muted); text-align: right;">
+                                (Float + Sales)</div>
+                        </div>
+
+                        <!-- Actual Count -->
+                        <div style="margin-bottom: var(--space-4);">
+                            <label style="display: block; font-weight: 600; margin-bottom: var(--space-2);">Actual Cash
+                                Counted</label>
+                            <input type="number" id="actualCash" placeholder="0.00" step="0.01"
+                                style="width: 100%; padding: 12px; border: 2px solid var(--color-border); border-radius: var(--radius-md); font-size: 1.2em; font-weight: 700;">
+                        </div>
+
+                        <!-- Status Message -->
+                        <div id="reconcileStatus" class="info-note" hidden>
+                            <!-- JS will populate -->
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="notes-section">
+                        <label for="notesInput">Notes / Discrepancy Reason</label>
+                        <textarea id="notesInput"
+                            placeholder="If amounts don't match, please explain here..."></textarea>
+                    </div>
+
+                    <button type="button" class="register-another-btn" id="submitBtn"
+                        style="width: 100%; border-color: var(--color-primary); background: var(--color-primary); color: white;">
+                        Submit Report
+                    </button>
+                </section>
             </div>
+        </main>
 
-            <!-- Sales Items -->
-            <div class="sales-items" id="salesItems">
-                <!-- Dynamically populated -->
+        <footer class="footer">
+            <div class="container">
+                <p class="footer-text">Sri Thendayuthapani Temple — Volunteer Coordination</p>
             </div>
-
-            <!-- Total -->
-            <div class="total-section">
-                <div class="total-label">Total Amount Collected</div>
-                <div class="total-amount">$<span id="totalAmount">0.00</span></div>
-            </div>
-
-            <!-- Notes -->
-            <div class="notes-section">
-                <label for="notesInput">Notes (optional)</label>
-                <textarea id="notesInput"
-                    placeholder="Any additional notes, damaged items, discrepancies, etc."></textarea>
-            </div>
-
-            <button class="submit-btn" id="submitBtn">Submit Report</button>
-        </div>
+        </footer>
     </div>
 
     <script type="module" src="./src/report.js"></script>

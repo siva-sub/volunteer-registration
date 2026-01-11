@@ -105,6 +105,38 @@
                 </section>
 
                 <!-- Quick Actions -->
+                <!-- Waitlist Section -->
+                <section class="waitlist-section" id="waitlistSection" hidden>
+                    <div class="section-header">
+                        <h3 class="section-title">📋 Waitlist</h3>
+                        <div class="header-actions">
+                            <button class="action-btn action-btn--secondary" id="refreshWaitlistBtn">Refresh</button>
+                        </div>
+                    </div>
+                    <div id="waitlistStats" class="waitlist-stats">
+                        <!-- Stats cards injected here -->
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Name</th>
+                                    <th>Contact</th>
+                                    <th>Shift / Station</th>
+                                    <th>Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="waitlistTableBody">
+                                <tr>
+                                    <td colspan="6" class="table-loading">Loading waitlist...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
                 <section class="actions-section">
                     <div class="actions-bar">
                         <div class="filter-group">
@@ -188,18 +220,12 @@
                 <section class="reports-section" id="reportsSection">
                     <div class="section-header">
                         <h3 class="section-title">📊 Sales Reports</h3>
-                        <button class="action-btn action-btn--secondary" id="exportReportsBtn">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            Export CSV
-                        </button>
+                        <div class="header-actions">
+                            <button class="action-btn action-btn--secondary" id="refreshReportsBtn">Refresh</button>
+                            <button class="action-btn action-btn--secondary" id="exportReportsBtn">Export CSV</button>
+                        </div>
                     </div>
 
-                    <!-- Summary Cards -->
                     <div class="reports-summary" id="reportsSummary">
                         <div class="summary-card">
                             <span class="summary-icon">📝</span>
@@ -223,7 +249,6 @@
                         </div>
                     </div>
 
-                    <!-- Reports Table -->
                     <div class="table-container">
                         <table class="data-table">
                             <thead>
@@ -244,6 +269,26 @@
                         </table>
                     </div>
                     <p class="table-empty" id="reportsEmpty" hidden>No sales reports submitted yet.</p>
+                </section>
+
+                <!-- Feedback Summary Section -->
+                <section class="feedback-section" id="feedbackSummarySection">
+                    <div class="section-header">
+                        <h3 class="section-title">⭐ Feedback Summary</h3>
+                        <button class="action-btn action-btn--secondary" id="refreshFeedbackBtn">Refresh</button>
+                    </div>
+
+                    <div id="feedbackStats" class="feedback-stats">
+                        <div class="summary-card">
+                            <span class="summary-icon">📊</span>
+                            <span class="summary-value" id="totalFeedbackCount">0</span>
+                            <span class="summary-label">Total Responses</span>
+                        </div>
+                    </div>
+
+                    <div class="feedback-results" id="feedbackResults">
+                        <p class="table-loading">Loading feedback summary...</p>
+                    </div>
                 </section>
 
                 <!-- Send Reminders -->
@@ -332,9 +377,20 @@
                     <form id="eventForm">
                         <div class="form-group">
                             <label for="eventTemplate" class="form-label">Use Template (Optional)</label>
-                            <select id="eventTemplate" class="form-input">
-                                <option value="">-- Custom Event --</option>
+                            <select id="eventTemplate" class="form-select">
+                                <option value="">-- Select Event Template --</option>
                             </select>
+                            <div id="templatePreview" class="template-preview" hidden>
+                                <div class="template-preview-header">
+                                    <span class="template-icon"></span>
+                                    <h4 class="template-name"></h4>
+                                </div>
+                                <p class="template-desc"></p>
+                                <div class="template-stats">
+                                    <span class="stat-badge"><span class="slot-count"></span> Slots/Day</span>
+                                    <span class="stat-badge"><span class="station-count"></span> Stations</span>
+                                </div>
+                            </div>
                             <p class="form-subtext">Select a template to auto-generate volunteer slots</p>
                         </div>
                         <div class="form-group">
@@ -392,23 +448,57 @@
                                 </label>
                             </div>
                         </div>
-                        <!-- Check-in Window Settings (collapsed) -->
-                        <details class="form-details">
-                            <summary class="form-details-toggle">▼ Check-in Window Settings</summary>
+                        <!-- Advanced Configuration -->
+                        <details class="form-details" open>
+                            <summary class="form-details-toggle">▼ Advanced Configuration</summary>
+
+                            <!-- Registration Mode -->
                             <div class="form-group" style="margin-top: 16px;">
-                                <label class="form-label">Check-in opens</label>
-                                <div class="form-inline">
-                                    <input type="number" id="checkinOpenOffset" class="form-input" value="30" min="0"
-                                        max="180" style="width: 80px;">
-                                    <span>minutes before shift starts</span>
+                                <label class="form-label">Registration Mode</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="registrationMode" value="instant" checked>
+                                        Instant Booking (Standard)
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="registrationMode" value="approval">
+                                        Approval Required (Application)
+                                    </label>
+                                </div>
+                                <p class="form-subtext">If 'Approval Required', all signups go to waitlist first.</p>
+                            </div>
+
+                            <!-- Waitlist Mode -->
+                            <div class="form-group">
+                                <label class="form-label">Waitlist Strategy</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="waitlistMode" value="manual" checked>
+                                        Manual Promotion
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="waitlistMode" value="auto">
+                                        Auto-Promote (First-Come)
+                                    </label>
                                 </div>
                             </div>
+
+                            <!-- Check-in Window -->
                             <div class="form-group">
-                                <label class="form-label">Check-in closes</label>
-                                <div class="form-inline">
-                                    <input type="number" id="checkinCloseOffset" class="form-input" value="120" min="0"
-                                        max="480" style="width: 80px;">
-                                    <span>minutes after shift starts</span>
+                                <label class="form-label">Check-in Window</label>
+                                <div class="checkin-window-row">
+                                    <div class="checkin-input-group">
+                                        <span class="checkin-label">Opens</span>
+                                        <input type="number" id="checkinOpenOffset" class="form-input form-input--sm"
+                                            value="30" min="0" max="180">
+                                        <span class="checkin-suffix">min before</span>
+                                    </div>
+                                    <div class="checkin-input-group">
+                                        <span class="checkin-label">Closes</span>
+                                        <input type="number" id="checkinCloseOffset" class="form-input form-input--sm"
+                                            value="120" min="0" max="480">
+                                        <span class="checkin-suffix">min after</span>
+                                    </div>
                                 </div>
                             </div>
                         </details>
@@ -418,6 +508,19 @@
                             <input type="email" id="coordinatorEmail" class="form-input"
                                 placeholder="coordinator@example.com">
                             <p class="form-subtext">Receives 7/3/1 day reminder emails before event</p>
+                        </div>
+
+                        <!-- Feedback Questions Management -->
+                        <div class="form-group"
+                            style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--color-border);">
+                            <label class="form-label">Feedback Questions</label>
+                            <div id="questionsEditor" class="questions-editor">
+                                <!-- Dynamic questions list -->
+                            </div>
+                            <button type="button" class="action-btn action-btn--secondary" id="addQuestionBtn"
+                                style="margin-top: 8px; width: 100%;">
+                                + Add Question
+                            </button>
                         </div>
                         <div class="modal-actions">
                             <button type="button" class="action-btn action-btn--secondary"
