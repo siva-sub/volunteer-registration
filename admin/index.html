@@ -474,14 +474,41 @@
                                                 <span></span>
                                             </div>
                                             <!-- Default Shift -->
-                                            <div class="shift-row">
-                                                <input type="text" class="shift-input shift-name" value="Morning Shift"
-                                                    placeholder="Shift Name">
-                                                <input type="time" class="shift-input shift-start" value="07:00">
-                                                <input type="time" class="shift-input shift-end" value="13:00">
-                                                <input type="number" class="shift-input shift-capacity" value="10"
-                                                    min="1">
-                                                <button type="button" class="remove-btn" title="Remove Shift">×</button>
+                                            <div class="shift-row"
+                                                style="display: flex; flex-direction: column; align-items: stretch; gap: 0;">
+                                                <div
+                                                    style="display: flex; gap: var(--space-2); align-items: center; width: 100%;">
+                                                    <input type="text" class="shift-input shift-name"
+                                                        value="Morning Shift" placeholder="Shift Name" style="flex: 2;">
+                                                    <input type="time" class="shift-input shift-start" value="07:00"
+                                                        style="flex: 1.5;">
+                                                    <input type="time" class="shift-input shift-end" value="13:00"
+                                                        style="flex: 1.5;">
+                                                    <input type="number" class="shift-input shift-capacity" value="10"
+                                                        min="1" style="flex: 1;">
+                                                    <button type="button" class="action-btn action-btn--sm"
+                                                        title="Toggle Sales" onclick="toggleSalesSection(this)"
+                                                        style="padding: 2px 6px; opacity: 0.5; flex-shrink: 0;">💰</button>
+                                                    <button type="button" class="remove-btn" title="Remove Shift"
+                                                        style="flex-shrink: 0;">×</button>
+                                                </div>
+                                                <!-- Sales Config Section -->
+                                                <div class="sales-config-container" hidden
+                                                    style="width: 100%; margin-top: 8px; padding: 8px; background: var(--color-background); border-radius: 4px; border: 1px dashed var(--color-border);">
+                                                    <div
+                                                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                                        <label class="checkbox-label" style="font-size: 0.75rem;">
+                                                            <input type="checkbox" class="shift-sales-toggle"> Enable
+                                                            Sales
+                                                        </label>
+                                                        <button type="button"
+                                                            class="action-btn action-btn--secondary action-btn--sm"
+                                                            style="font-size: 0.7rem; padding: 2px 5px;"
+                                                            onclick="addSalesItemRow(this)">+ Item</button>
+                                                    </div>
+                                                    <div class="sales-items-list">
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                         <button type="button" class="add-shift-btn">+ Add Shift</button>

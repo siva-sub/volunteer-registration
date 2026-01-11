@@ -465,27 +465,29 @@ function renderQuestionEditor() {
     }
 
     elements.questionsEditor.innerHTML = state.eventQuestions.map((q, i) => `
-        <div class="question-card" data-index="${i}">
-            <div class="question-header">
+        <div class="question-card" data-index="${i}" style="border: 1px solid var(--color-border); padding: 12px; border-radius: 8px; margin-bottom: 8px; background: #fff;">
+            <div class="question-header" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-muted);">Question ${i + 1}</span>
-                <button type="button" class="btn-remove-q" onclick="removeQuestion(${i})" title="Remove Question">×</button>
+                <button type="button" class="btn-remove-q" onclick="removeQuestion(${i})" title="Remove Question" style="color: red;">×</button>
             </div>
-            <div class="question-body">
-                <div class="question-input-main">
-                    <input type="text" class="form-input q-text" value="${q.question_text}" placeholder="e.g., How was the crowd control?" required>
+            <div class="question-body" style="display: flex; flex-direction: column; gap: 8px;">
+                <div class="question-input-main" style="width: 100%;">
+                    <input type="text" class="form-input q-text" value="${q.question_text}" placeholder="e.g., How was the crowd control?" required style="width: 100%;">
                 </div>
-                <div class="question-input-type">
-                    <select class="form-select q-type">
-                        <option value="stars" ${q.question_type === 'stars' ? 'selected' : ''}>Star Rating (1-5)</option>
-                        <option value="rating" ${q.question_type === 'rating' ? 'selected' : ''}>Numeric Rating (1-10)</option>
-                        <option value="text" ${q.question_type === 'text' ? 'selected' : ''}>Text Response</option>
-                    </select>
-                </div>
-                <div class="question-options">
-                    <label class="checkbox-label" style="font-size: 0.85rem;">
-                        <input type="checkbox" class="q-required" ${q.is_required ? 'checked' : ''}>
-                        <span>Required</span>
-                    </label>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="question-input-type" style="flex: 1; margin-right: 12px;">
+                        <select class="form-select q-type" style="width: 100%;">
+                            <option value="stars" ${q.question_type === 'stars' ? 'selected' : ''}>Star Rating (1-5)</option>
+                            <option value="rating" ${q.question_type === 'rating' ? 'selected' : ''}>Numeric Rating (1-10)</option>
+                            <option value="text" ${q.question_type === 'text' ? 'selected' : ''}>Text Response</option>
+                        </select>
+                    </div>
+                    <div class="question-options">
+                        <label class="checkbox-label" style="font-size: 0.85rem;">
+                            <input type="checkbox" class="q-required" ${q.is_required ? 'checked' : ''}>
+                            <span>Required</span>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -837,15 +839,20 @@ function addShiftRowWithData(shiftList, data = {}) {
 
     const row = document.createElement('div');
     row.className = 'shift-row';
-    row.style.flexWrap = 'wrap';
+    // Use flex column to stack the input row and the sales config row
+    row.style.display = 'flex';
+    row.style.flexDirection = 'column';
+    row.style.alignItems = 'stretch';
+    row.style.gap = '0';
+
     row.innerHTML = `
         <div style="display: flex; gap: var(--space-2); align-items: center; width: 100%;">
-            <input type="text" class="shift-input shift-name" value="${data.name || ''}" placeholder="Shift Name">
-            <input type="time" class="shift-input shift-start" value="${data.start || '09:00'}">
-            <input type="time" class="shift-input shift-end" value="${data.end || '12:00'}">
-            <input type="number" class="shift-input shift-capacity" value="${data.capacity || 10}" min="1">
-            <button type="button" class="action-btn action-btn--sm" title="Toggle Sales" onclick="toggleSalesSection(this)" style="padding: 2px 6px; opacity: ${hasSales ? '1' : '0.5'};">💰</button>
-            <button type="button" class="remove-btn" title="Remove Shift">×</button>
+            <input type="text" class="shift-input shift-name" value="${data.name || ''}" placeholder="Shift Name" style="flex: 2;">
+            <input type="time" class="shift-input shift-start" value="${data.start || '09:00'}" style="flex: 1.5;">
+            <input type="time" class="shift-input shift-end" value="${data.end || '12:00'}" style="flex: 1.5;">
+            <input type="number" class="shift-input shift-capacity" value="${data.capacity || 10}" min="1" style="flex: 1;">
+            <button type="button" class="action-btn action-btn--sm" title="Toggle Sales" onclick="toggleSalesSection(this)" style="padding: 2px 6px; opacity: ${hasSales ? '1' : '0.5'}; flex-shrink: 0;">💰</button>
+            <button type="button" class="remove-btn" title="Remove Shift" style="flex-shrink: 0;">×</button>
         </div>
         
         <!-- Sales Config Section -->
@@ -2074,6 +2081,31 @@ function init() {
 
         const uniqueStations = [...new Set(slotConfig.map(s => s.station).filter(Boolean))];
         elements.templateStationCount.textContent = uniqueStations.length;
+
+        // Render slots preview list
+        const previewList = elements.templatePreview.querySelector('.template-slots-preview') ||
+            (function () {
+                const div = document.createElement('div');
+                div.className = 'template-slots-preview';
+                div.style.marginTop = '12px';
+                div.style.maxHeight = '200px';
+                div.style.overflowY = 'auto';
+                div.style.border = '1px solid var(--color-border)';
+                div.style.borderRadius = '8px';
+                div.style.background = '#fafafa';
+                elements.templatePreview.insertBefore(div, elements.customizeTemplateBtn);
+                return div;
+            })();
+
+        previewList.innerHTML = slotConfig.length ? slotConfig.map(s => `
+            <div style="padding: 8px; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; font-size: 0.8em;">
+                <span style="font-weight: 500;">${s.station || 'General'}</span>
+                <span>${s.name || s.shift_name} (${s.start}-${s.end})</span>
+                <div class="shift-badges">
+                    ${s.sales_config ? '<span class="shift-badge" style="background: #e0f2f1; color: #00695c;">💰 Sales</span>' : ''}
+                </div>
+            </div>
+        `).join('') : '<p style="padding:8px; font-style:italic; font-size:0.8em">No slots config found.</p>';
 
         // Auto-fill settings
         const settings = template.default_settings || {};
