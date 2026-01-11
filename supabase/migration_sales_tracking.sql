@@ -371,3 +371,116 @@ $$;
 
 GRANT EXECUTE ON FUNCTION join_waitlist(UUID, TEXT, TEXT, TEXT) TO anon;
 GRANT EXECUTE ON FUNCTION join_waitlist(UUID, TEXT, TEXT, TEXT) TO service_role;
+
+-- =====================================================
+-- FEEDBACK QUESTIONS SYSTEM
+-- =====================================================
+
+-- Feedback questions per event
+CREATE TABLE IF NOT EXISTS feedback_questions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id UUID REFERENCES events(id) ON DELETE CASCADE NOT NULL,
+  question_text TEXT NOT NULL,
+  question_type TEXT NOT NULL, -- 'stars' (1-5), 'rating' (1-10), 'freeform' (text)
+  display_order INTEGER DEFAULT 0,
+  is_required BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_questions_event ON feedback_questions(event_id);
+
+-- Enable RLS
+ALTER TABLE feedback_questions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Service role manages feedback_questions" ON feedback_questions
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY "Anon can read feedback_questions" ON feedback_questions
+  FOR SELECT TO anon USING (true);
+
+-- =====================================================
+-- RPC: Create Default Feedback Questions
+-- =====================================================
+CREATE OR REPLACE FUNCTION create_default_feedback_questions(p_event_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  -- Only create if none exist
+  IF EXISTS (SELECT 1 FROM feedback_questions WHERE event_id = p_event_id) THEN
+    RETURN;
+  END IF;
+
+  INSERT INTO feedback_questions (event_id, question_text, question_type, display_order, is_required) VALUES
+    (p_event_id, 'How would you rate your overall experience?', 'stars', 1, true),
+    (p_event_id, 'How well organized was the event?', 'stars', 2, false),
+    (p_event_id, 'Would you volunteer again?', 'rating', 3, false),
+    (p_event_id, 'Any suggestions for improvement?', 'freeform', 4, false);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION create_default_feedback_questions(UUID) TO service_role;
+
+-- =====================================================
+-- RPC: Get Feedback Summary (for admin)
+-- =====================================================
+CREATE OR REPLACE FUNCTION get_feedback_summary(p_event_id UUID)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_result JSON;
+BEGIN
+  SELECT json_build_object(
+    'total_responses', (SELECT COUNT(DISTINCT registration_id) FROM feedback WHERE event_id = p_event_id),
+    'questions', (
+      SELECT json_agg(q ORDER BY q.display_order)
+      FROM (
+        SELECT 
+          fq.id,
+          fq.question_text,
+          fq.question_type,
+          fq.display_order,
+          CASE 
+            WHEN fq.question_type IN ('stars', 'rating') THEN
+              (SELECT AVG((fr.response)::NUMERIC) FROM feedback_responses fr WHERE fr.question_id = fq.id)
+            ELSE NULL
+          END as average_score,
+          CASE
+            WHEN fq.question_type = 'freeform' THEN
+              (SELECT json_agg(fr.response) FROM feedback_responses fr WHERE fr.question_id = fq.id AND fr.response IS NOT NULL AND fr.response != '')
+            ELSE NULL
+          END as text_responses,
+          (SELECT COUNT(*) FROM feedback_responses fr WHERE fr.question_id = fq.id) as response_count
+        FROM feedback_questions fq
+        WHERE fq.event_id = p_event_id
+      ) q
+    )
+  ) INTO v_result;
+  
+  RETURN v_result;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_feedback_summary(UUID) TO service_role;
+
+-- Feedback responses table (links responses to questions)
+CREATE TABLE IF NOT EXISTS feedback_responses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  feedback_id UUID REFERENCES feedback(id) ON DELETE CASCADE NOT NULL,
+  question_id UUID REFERENCES feedback_questions(id) ON DELETE CASCADE NOT NULL,
+  response TEXT,
+  UNIQUE(feedback_id, question_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_responses_question ON feedback_responses(question_id);
+
+ALTER TABLE feedback_responses ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Service role manages feedback_responses" ON feedback_responses
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY "Anon can insert feedback_responses" ON feedback_responses
+  FOR INSERT TO anon WITH CHECK (true);
