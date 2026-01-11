@@ -1096,3 +1096,202 @@
     line-height: 1.4;
     color: var(--color-text-muted);
 }
+
+/* Schedule Builder Styles */
+.schedule-builder {
+    margin-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-4);
+}
+
+.builder-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+}
+
+.builder-mode-switch {
+    display: flex;
+    gap: var(--space-2);
+    background: var(--color-surface-alt);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-4);
+}
+
+.mode-btn {
+    flex: 1;
+    text-align: center;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: transparent;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    transition: all 0.2s;
+}
+
+.mode-btn:hover {
+    color: var(--color-text);
+}
+
+.mode-btn.active {
+    background: var(--color-white);
+    color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+    font-weight: 600;
+}
+
+/* Station Card */
+.station-card {
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+    box-shadow: var(--shadow-sm);
+}
+
+.station-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.station-title-input {
+    font-size: var(--font-size-md);
+    font-weight: 600;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    padding: 4px 8px;
+    width: 250px;
+    transition: border-color 0.2s;
+}
+
+.station-title-input:hover {
+    border-color: var(--color-border);
+}
+
+.station-title-input:focus {
+    border-color: var(--color-primary);
+    background: var(--color-surface-alt);
+    outline: none;
+}
+
+.station-actions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+/* Shift Rows */
+.shift-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.shift-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1.5fr 1fr 40px;
+    gap: var(--space-2);
+    align-items: center;
+    background: var(--color-surface-alt);
+    padding: var(--space-2);
+    border-radius: var(--radius-md);
+}
+
+.shift-input {
+    padding: 6px;
+    font-size: var(--font-size-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    width: 100%;
+}
+
+.shift-input:focus {
+    border-color: var(--color-primary);
+    outline: none;
+}
+
+.remove-btn {
+    color: var(--color-text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+}
+
+.remove-btn:hover {
+    color: var(--color-error);
+    background: #fee2e2;
+}
+
+.remove-station-btn {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.remove-station-btn:hover {
+    color: var(--color-error);
+    text-decoration: underline;
+}
+
+.add-shift-btn {
+    margin-top: var(--space-2);
+    font-size: var(--font-size-xs);
+    color: var(--color-primary);
+    background: transparent;
+    border: 1px dashed var(--color-primary);
+    padding: 8px;
+    width: 100%;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.add-shift-btn:hover {
+    background: var(--color-primary-light);
+}
+
+.add-station-wrapper {
+    margin-top: var(--space-4);
+    margin-bottom: var(--space-4);
+}
+
+.add-station-btn {
+    width: 100%;
+    padding: var(--space-4);
+    border: 2px dashed var(--color-border);
+    border-radius: var(--radius-lg);
+    color: var(--color-text-muted);
+    background: transparent;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+}
+
+.add-station-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: var(--color-surface-alt);
+}

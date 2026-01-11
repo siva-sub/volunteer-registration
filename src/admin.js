@@ -189,6 +189,14 @@ const elements = {
     templateDesc: document.querySelector('.template-desc'),
     templateSlotCount: document.querySelector('.slot-count'),
     templateStationCount: document.querySelector('.station-count'),
+
+    // Schedule Builder
+    modeCustomBtn: document.getElementById('modeCustomBtn'),
+    modeTemplateBtn: document.getElementById('modeTemplateBtn'),
+    customModeSection: document.getElementById('customModeSection'),
+    templateModeSection: document.getElementById('templateModeSection'),
+    stationsContainer: document.getElementById('stationsContainer'),
+    addStationBtn: document.getElementById('addStationBtn'),
 };
 
 // =====================================================
@@ -591,13 +599,21 @@ async function handleCreateEventSubmit(e) {
             }
 
             // 2. Generate Slots for this event
-            const templateId = elements.eventTemplate.value;
-            if (templateId) {
-                // Use template - apply for each day in date range
-                await applyTemplateToEvent(eventData.id, templateId, start, end);
+            const isCustomMode = elements.modeCustomBtn.classList.contains('active');
+
+            if (isCustomMode) {
+                // Parse Custom Schedule Builder
+                await generateCustomSlots(eventData.id, start, end);
             } else {
-                // No template - generate default morning/evening slots
-                await generateDefaultSlots(eventData.id, start, end);
+                // Use template
+                const templateId = elements.eventTemplate.value;
+                if (templateId) {
+                    await applyTemplateToEvent(eventData.id, templateId, start, end);
+                } else {
+                    // Fallback if checked template but didn't select one -> do nothing or warn.
+                    // Ideally validate before submit.
+                    console.warn("No template selected, no slots generated.");
+                }
             }
 
             closeEventModal();
@@ -613,47 +629,152 @@ async function handleCreateEventSubmit(e) {
     }
 }
 
-async function generateDefaultSlots(eventId, startStr, endStr) {
+async function generateCustomSlots(eventId, startStr, endStr) {
     const slots = [];
     const start = new Date(startStr);
     const end = new Date(endStr);
 
-    // Iterate dates matches generateFestivalDates logic
+    // Get all stations
+    const stationCards = elements.stationsContainer.querySelectorAll('.station-card');
+
+    // Iterate dates
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
         const dateStr = d.toISOString().split('T')[0];
-        const dayOfWeek = d.toLocaleDateString('en-US', { weekday: 'Long' }); // e.g. Saturday
+        const dayOfWeek = d.toLocaleDateString('en-US', { weekday: 'Long' });
 
-        // Morning Slot
-        slots.push({
-            event_id: eventId,
-            date: dateStr,
-            day_of_week: dayOfWeek,
-            shift_name: 'Morning',
-            start_time: '08:00',
-            end_time: '12:00',
-            capacity: 50, // Default capacity
-            registered_count: 0
-        });
+        stationCards.forEach(card => {
+            const stationNameInput = card.querySelector('.station-title-input');
+            const stationName = stationNameInput.value.trim();
+            const station = (stationName === '' || stationName === 'General Volunteers') ? null : stationName;
 
-        // Evening Slot
-        slots.push({
-            event_id: eventId,
-            date: dateStr,
-            day_of_week: dayOfWeek,
-            shift_name: 'Evening',
-            start_time: '16:00',
-            end_time: '20:00',
-            capacity: 50, // Default capacity
-            registered_count: 0
+            const shiftRows = card.querySelectorAll('.shift-row:not(:first-child)'); // Skip header
+
+            shiftRows.forEach(row => {
+                const name = row.querySelector('.shift-name').value;
+                const startTime = row.querySelector('.shift-start').value;
+                const endTime = row.querySelector('.shift-end').value;
+                const capacity = parseInt(row.querySelector('.shift-capacity').value) || 10;
+
+                if (name && startTime && endTime) {
+                    slots.push({
+                        event_id: eventId,
+                        date: dateStr,
+                        day_of_week: dayOfWeek,
+                        shift_name: name,
+                        start_time: startTime,
+                        end_time: endTime,
+                        capacity: capacity,
+                        station: station,
+                        registered_count: 0
+                    });
+                }
+            });
         });
     }
 
-    const { error } = await supabase.from('shift_slots').insert(slots);
-    if (error) {
-        console.error('Error generating slots:', error);
-        alert('Event created but slots generation failed. Check console.');
+    if (slots.length > 0) {
+        const { error } = await supabase.from('shift_slots').insert(slots);
+        if (error) {
+            console.error('Error generating custom slots:', error);
+            alert('Event created but slots generation failed.');
+        }
     }
 }
+
+// Initialize Schedule Builder Event Listeners
+function initScheduleBuilder() {
+    if (!elements.modeCustomBtn) return;
+
+    // Mode Switch
+    elements.modeCustomBtn.addEventListener('click', () => {
+        elements.modeCustomBtn.classList.add('active');
+        elements.modeTemplateBtn.classList.remove('active');
+        elements.customModeSection.hidden = false;
+        elements.templateModeSection.hidden = true;
+    });
+
+    elements.modeTemplateBtn.addEventListener('click', () => {
+        elements.modeTemplateBtn.classList.add('active');
+        elements.modeCustomBtn.classList.remove('active');
+        elements.customModeSection.hidden = true;
+        elements.templateModeSection.hidden = false;
+    });
+
+    // Add Station
+    if (elements.addStationBtn) {
+        elements.addStationBtn.addEventListener('click', () => {
+            const clone = elements.stationsContainer.querySelector('.station-card').cloneNode(true);
+            clone.querySelector('.station-title-input').value = '';
+            clone.querySelector('.station-title-input').placeholder = 'New Station Name';
+
+            // Reset shifts to just one default empty one? Or clear them?
+            // Let's clear and add one default
+            const shiftList = clone.querySelector('.shift-list');
+            // Keep header (first child)
+            const header = shiftList.firstElementChild;
+            shiftList.innerHTML = '';
+            shiftList.appendChild(header);
+
+            // Add one default shift row
+            addShiftRow(shiftList);
+
+            // Show remove station btn
+            clone.querySelector('.remove-station-btn').hidden = false;
+
+            elements.stationsContainer.appendChild(clone);
+            attachStationListeners(clone);
+        });
+    }
+
+    // Initial listeners for default station
+    const defaultStation = elements.stationsContainer.querySelector('.station-card');
+    if (defaultStation) attachStationListeners(defaultStation);
+}
+
+function addShiftRow(shiftList) {
+    const row = document.createElement('div');
+    row.className = 'shift-row';
+    row.innerHTML = `
+        <input type="text" class="shift-input shift-name" value="Shift Name" placeholder="Shift Name">
+        <input type="time" class="shift-input shift-start" value="09:00">
+        <input type="time" class="shift-input shift-end" value="12:00">
+        <input type="number" class="shift-input shift-capacity" value="10" min="1">
+        <button type="button" class="remove-btn" title="Remove Shift">×</button>
+    `;
+    shiftList.appendChild(row);
+
+    // Attach listener to remove btn
+    row.querySelector('.remove-btn').addEventListener('click', () => row.remove());
+}
+
+function attachStationListeners(stationCard) {
+    // Add Shift Btn
+    const addBtn = stationCard.querySelector('.add-shift-btn');
+    addBtn.onclick = () => { // use onclick to avoid multiple bindings if re-attached
+        addShiftRow(stationCard.querySelector('.shift-list'));
+    };
+
+    // Remove Station Btn
+    const removeStationBtn = stationCard.querySelector('.remove-station-btn');
+    removeStationBtn.onclick = () => {
+        if (elements.stationsContainer.querySelectorAll('.station-card').length > 1) {
+            stationCard.remove();
+        }
+    };
+
+    // Existing shift rows
+    stationCard.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.onclick = function () { this.closest('.shift-row').remove(); };
+    });
+}
+
+// Call init on load
+document.addEventListener('DOMContentLoaded', () => {
+    initScheduleBuilder();
+});
+
+// Replaces generateDefaultSlots - Removed
+// async function generateDefaultSlots(eventId, startStr, endStr) { ... }
 
 async function loadEventTemplates() {
     try {
@@ -1071,7 +1192,10 @@ function renderSlots() {
                         ${typeBadge}
                         <span class="slot-capacity">${slot.registered_count}/${slot.capacity}</span>
                     </div>
-                    <button class="slot-delete-btn" onclick="window.handleDeleteSlot('${slot.id}')" title="Delete Slot">🗑️</button>
+                    <div class="slot-actions-row">
+                        <button class="icon-btn-small" onclick="window.openAddVolunteerModal('${slot.id}')" title="Manual Add Volunteer">➕ Add Vol</button>
+                        <button class="slot-delete-btn" onclick="window.handleDeleteSlot('${slot.id}')" title="Delete Slot">🗑️</button>
+                    </div>
                 </div>
             `;
         }).join('');

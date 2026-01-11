@@ -376,24 +376,6 @@
                 <div class="modal-body">
                     <form id="eventForm">
                         <div class="form-group">
-                            <label for="eventTemplate" class="form-label">Use Template (Optional)</label>
-                            <select id="eventTemplate" class="form-select">
-                                <option value="">-- Select Event Template --</option>
-                            </select>
-                            <div id="templatePreview" class="template-preview" hidden>
-                                <div class="template-preview-header">
-                                    <span class="template-icon"></span>
-                                    <h4 class="template-name"></h4>
-                                </div>
-                                <p class="template-desc"></p>
-                                <div class="template-stats">
-                                    <span class="stat-badge"><span class="slot-count"></span> Slots/Day</span>
-                                    <span class="stat-badge"><span class="station-count"></span> Stations</span>
-                                </div>
-                            </div>
-                            <p class="form-subtext">Select a template to auto-generate volunteer slots</p>
-                        </div>
-                        <div class="form-group">
                             <label for="eventTitle" class="form-label">Event Title</label>
                             <input type="text" id="eventTitle" class="form-input"
                                 placeholder="e.g. Panguni Uthiram 2026" required>
@@ -421,107 +403,149 @@
                                 <span>to</span>
                                 <input type="date" id="eventEndDate" class="form-input" required>
                             </div>
-                            <p class="form-subtext">Morning/Evening slots will be auto-generated for these dates.</p>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Event Settings</label>
-                            <div class="form-checkboxes">
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="feedbackEnabled" checked>
-                                    <span>Enable feedback collection</span>
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="certificatesEnabled" checked>
-                                    <span>Enable volunteer certificates</span>
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="checkinRequired" checked>
-                                    <span>Require volunteer check-in</span>
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="waitlistEnabled">
-                                    <span>Enable waitlist for full slots</span>
-                                </label>
-                                <label class="checkbox-label">
-                                    <input type="checkbox" id="eventPaused">
-                                    <span>Start paused (disable registrations)</span>
-                                </label>
+
+                        <!-- Schedule Configuration -->
+                        <div class="form-group" style="margin-top: var(--space-6);">
+                            <label class="form-label">Schedule Configuration</label>
+                            <div class="builder-mode-switch">
+                                <button type="button" class="mode-btn active" data-mode="custom"
+                                    id="modeCustomBtn">Custom Schedule</button>
+                                <button type="button" class="mode-btn" data-mode="template" id="modeTemplateBtn">Use
+                                    Template</button>
+                            </div>
+
+                            <!-- Template Mode (Hidden by Default) -->
+                            <div id="templateModeSection" hidden>
+                                <select id="eventTemplate" class="form-select">
+                                    <option value="">-- Select Event Template --</option>
+                                </select>
+                                <div id="templatePreview" class="template-preview" hidden>
+                                    <div class="template-preview-header">
+                                        <span class="template-icon"></span>
+                                        <h4 class="template-name"></h4>
+                                    </div>
+                                    <p class="template-desc"></p>
+                                    <div class="template-stats">
+                                        <span class="stat-badge"><span class="slot-count"></span> Slots/Day</span>
+                                        <span class="stat-badge"><span class="station-count"></span> Stations</span>
+                                    </div>
+                                </div>
+                                <p class="form-subtext">Select a template to auto-generate volunteer slots based on the
+                                    dates above.</p>
+                            </div>
+
+                            <!-- Custom Mode (Default) -->
+                            <div id="customModeSection" class="schedule-builder">
+                                <p class="form-subtext" style="margin-bottom: var(--space-3);">
+                                    Build your schedule. Add stations (e.g., "Kitchen", "Crowd Control") or keep it
+                                    general.
+                                    Shifts added here will be created for <strong>every day</strong> in the date range.
+                                </p>
+                                <div id="stationsContainer">
+                                    <!-- Dynamic Stations will be here. Initial Default: One General Station -->
+                                    <div class="station-card" data-station-id="0">
+                                        <div class="station-header">
+                                            <input type="text" class="station-title-input" value="General Volunteers"
+                                                placeholder="Station Name">
+                                            <div class="station-actions">
+                                                <button type="button" class="remove-station-btn" hidden>Remove
+                                                    Station</button>
+                                            </div>
+                                        </div>
+                                        <div class="shift-list">
+                                            <!-- Header -->
+                                            <div class="shift-row"
+                                                style="background: transparent; border: none; padding: 0;">
+                                                <span
+                                                    style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">Shift
+                                                    Name</span>
+                                                <span
+                                                    style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">Start</span>
+                                                <span
+                                                    style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">End</span>
+                                                <span
+                                                    style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">Slots</span>
+                                                <span></span>
+                                            </div>
+                                            <!-- Default Shift -->
+                                            <div class="shift-row">
+                                                <input type="text" class="shift-input shift-name" value="Morning Shift"
+                                                    placeholder="Shift Name">
+                                                <input type="time" class="shift-input shift-start" value="07:00">
+                                                <input type="time" class="shift-input shift-end" value="13:00">
+                                                <input type="number" class="shift-input shift-capacity" value="10"
+                                                    min="1">
+                                                <button type="button" class="remove-btn" title="Remove Shift">×</button>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="add-shift-btn">+ Add Shift</button>
+                                    </div>
+                                </div>
+                                <div class="add-station-wrapper">
+                                    <button type="button" class="add-station-btn" id="addStationBtn">
+                                        <span style="font-size: 1.25rem;">+</span> Add Another Station
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <!-- Advanced Configuration -->
-                        <details class="form-details" open>
-                            <summary class="form-details-toggle">▼ Advanced Configuration</summary>
 
-                            <!-- Registration Mode -->
-                            <div class="form-group" style="margin-top: 16px;">
-                                <label class="form-label">Registration Mode</label>
-                                <div class="radio-group">
-                                    <label class="radio-label">
-                                        <input type="radio" name="registrationMode" value="instant" checked>
-                                        Instant Booking (Standard)
-                                    </label>
-                                    <label class="radio-label">
-                                        <input type="radio" name="registrationMode" value="approval">
-                                        Approval Required (Application)
-                                    </label>
-                                </div>
-                                <p class="form-subtext">If 'Approval Required', all signups go to waitlist first.</p>
+                        <!-- Settings & Advanced (Simplified) -->
+                        <div class="form-group"
+                            style="background: var(--color-surface-alt); padding: var(--space-4); border-radius: var(--radius-lg); margin-top: var(--space-6);">
+                            <label class="form-label">Settings</label>
+                            <div class="form-checkboxes" style="margin-bottom: var(--space-3);">
+                                <label class="checkbox-label"><input type="checkbox" id="feedbackEnabled" checked>
+                                    <span>Collect Feedback</span></label>
+                                <label class="checkbox-label"><input type="checkbox" id="checkinRequired" checked>
+                                    <span>Require Check-in</span></label>
+                                <label class="checkbox-label"><input type="checkbox" id="waitlistEnabled"> <span>Enable
+                                        Waitlist</span></label>
+                                <label class="checkbox-label"><input type="checkbox" id="eventPaused"> <span>Start
+                                        Paused</span></label>
                             </div>
 
-                            <!-- Waitlist Mode -->
-                            <div class="form-group">
-                                <label class="form-label">Waitlist Strategy</label>
-                                <div class="radio-group">
-                                    <label class="radio-label">
-                                        <input type="radio" name="waitlistMode" value="manual" checked>
-                                        Manual Promotion
-                                    </label>
-                                    <label class="radio-label">
-                                        <input type="radio" name="waitlistMode" value="auto">
-                                        Auto-Promote (First-Come)
-                                    </label>
+                            <hr style="border: 0; border-top: 1px solid var(--color-border); margin: var(--space-3) 0;">
+
+                            <!-- Mode (Radio) -->
+                            <div style="display: flex; gap: var(--space-4);">
+                                <div style="flex: 1;">
+                                    <label class="form-label" style="font-size: 0.8rem;">Registration</label>
+                                    <select name="registrationMode" class="form-select form-select--sm">
+                                        <option value="instant">Instant Booking</option>
+                                        <option value="approval">Approval Required</option>
+                                    </select>
+                                </div>
+                                <div style="flex: 1;">
+                                    <label class="form-label" style="font-size: 0.8rem;">Waitlist</label>
+                                    <select name="waitlistMode" class="form-select form-select--sm">
+                                        <option value="manual">Manual Promote</option>
+                                        <option value="auto">Auto Promote</option>
+                                    </select>
                                 </div>
                             </div>
-
                             <!-- Check-in Window -->
-                            <div class="form-group">
-                                <label class="form-label">Check-in Window</label>
-                                <div class="checkin-window-row">
-                                    <div class="checkin-input-group">
-                                        <span class="checkin-label">Opens</span>
-                                        <input type="number" id="checkinOpenOffset" class="form-input form-input--sm"
-                                            value="30" min="0" max="180">
-                                        <span class="checkin-suffix">min before</span>
-                                    </div>
-                                    <div class="checkin-input-group">
-                                        <span class="checkin-label">Closes</span>
-                                        <input type="number" id="checkinCloseOffset" class="form-input form-input--sm"
-                                            value="120" min="0" max="480">
-                                        <span class="checkin-suffix">min after</span>
-                                    </div>
+                            <div style="margin-top: var(--space-3);">
+                                <label class="form-label" style="font-size: 0.8rem;">Check-in Window (Minutes)</label>
+                                <div style="display: flex; gap: var(--space-2); align-items: center;">
+                                    <input type="number" id="checkinOpenOffset" class="form-input form-input--sm"
+                                        style="width: 80px;" value="30">
+                                    <span style="font-size: 0.8rem; color: var(--color-text-muted);">before</span>
+                                    <span style="color: var(--color-border);">|</span>
+                                    <input type="number" id="checkinCloseOffset" class="form-input form-input--sm"
+                                        style="width: 80px;" value="120">
+                                    <span style="font-size: 0.8rem; color: var(--color-text-muted);">after</span>
                                 </div>
                             </div>
-                        </details>
+                        </div>
+
                         <!-- Coordinator Email -->
                         <div class="form-group" style="margin-top: 16px;">
-                            <label for="coordinatorEmail" class="form-label">Coordinator Email (for reminders)</label>
+                            <label for="coordinatorEmail" class="form-label">Coordinator Email</label>
                             <input type="email" id="coordinatorEmail" class="form-input"
                                 placeholder="coordinator@example.com">
-                            <p class="form-subtext">Receives 7/3/1 day reminder emails before event</p>
                         </div>
 
-                        <!-- Feedback Questions Management -->
-                        <div class="form-group"
-                            style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--color-border);">
-                            <label class="form-label">Feedback Questions</label>
-                            <div id="questionsEditor" class="questions-editor">
-                                <!-- Dynamic questions list -->
-                            </div>
-                            <button type="button" class="action-btn action-btn--secondary" id="addQuestionBtn"
-                                style="margin-top: 8px; width: 100%;">
-                                + Add Question
-                            </button>
-                        </div>
                         <div class="modal-actions">
                             <button type="button" class="action-btn action-btn--secondary"
                                 id="eventCancelBtn">Cancel</button>
@@ -654,6 +678,43 @@
                             id="salesItemCancelBtn">Cancel</button>
                         <button type="button" class="action-btn action-btn--primary" id="salesItemAddBtn">Add</button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Volunteer Modal -->
+        <div class="modal-overlay" id="addVolunteerModal" hidden>
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">Add Volunteer Manually</h3>
+                    <button class="modal-close" id="addVolunteerModalClose">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="addVolunteerForm">
+                        <input type="hidden" id="addVolunteerSlotId">
+                        <div class="form-group">
+                            <label class="form-label">Assigning to:</label>
+                            <p id="addVolunteerSlotName" class="form-subtext"
+                                style="font-weight: 600; color: var(--color-primary);"></p>
+                        </div>
+                        <div class="form-group">
+                            <label for="avName" class="form-label">Full Name</label>
+                            <input type="text" id="avName" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="avPhone" class="form-label">Phone</label>
+                            <input type="tel" id="avPhone" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="avEmail" class="form-label">Email (Optional)</label>
+                            <input type="email" id="avEmail" class="form-input">
+                        </div>
+                        <div class="modal-actions">
+                            <button type="button" class="action-btn action-btn--secondary"
+                                id="addVolunteerCancelBtn">Cancel</button>
+                            <button type="submit" class="action-btn action-btn--primary">Add Volunteer</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
