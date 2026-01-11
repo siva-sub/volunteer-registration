@@ -2148,6 +2148,19 @@ function init() {
     if (elements.salesItemModalClose) elements.salesItemModalClose.addEventListener('click', closeSalesItemModal);
     if (elements.salesItemCancelBtn) elements.salesItemCancelBtn.addEventListener('click', closeSalesItemModal);
     if (elements.salesItemAddBtn) elements.salesItemAddBtn.addEventListener('click', handleAddSalesItem);
+
+    // Toggle Switch Handlers (for Registration Mode & Waitlist Mode)
+    document.querySelectorAll('.toggle-switch-group').forEach(group => {
+        const options = group.querySelectorAll('.toggle-switch-option');
+        options.forEach(option => {
+            option.addEventListener('click', () => {
+                options.forEach(o => o.classList.remove('active'));
+                option.classList.add('active');
+                const radio = option.querySelector('input[type="radio"]');
+                if (radio) radio.checked = true;
+            });
+        });
+    });
 }
 
 function populateScheduleBuilderFromTemplate(templateId) {
@@ -2198,17 +2211,37 @@ function addStationWithShifts(stationName, shifts) {
                 <button type="button" class="remove-station-btn">Remove Station</button>
             </div>
         </div>
+        <div class="station-sales-toggle">
+            <input type="checkbox" class="station-sales-checkbox" id="sales-${stationId}">
+            <label for="sales-${stationId}" style="font-size: 0.85rem; font-weight: 500; cursor: pointer;">
+                💰 Enable Sales for All Shifts in This Station
+            </label>
+        </div>
+        <div class="station-sales-items" hidden>
+            <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2);">
+                <span style="font-size: 0.8rem; font-weight: 500;">Sales Items:</span>
+                <button type="button" class="action-btn action-btn--secondary action-btn--sm add-station-item-btn" style="font-size: 0.75rem; padding: 4px 8px;">+ Add Item</button>
+            </div>
+            <div class="station-items-list"></div>
+        </div>
         <div class="shift-list">
              <div class="shift-row" style="background: transparent; border: none; padding: 0;">
                 <span class="table-header-text">Shift Name</span>
                 <span class="table-header-text">Start</span>
                 <span class="table-header-text">End</span>
                 <span class="table-header-text">Slots</span>
-                <span></span>
+                <span class="table-header-text">Per-Shift</span>
             </div>
         </div>
         <button type="button" class="add-shift-btn">+ Add Shift</button>
     `;
+
+    // Station sales toggle handler
+    const salesCheckbox = div.querySelector('.station-sales-checkbox');
+    const salesItemsSection = div.querySelector('.station-sales-items');
+    salesCheckbox.addEventListener('change', (e) => {
+        salesItemsSection.hidden = !e.target.checked;
+    });
 
     const shiftList = div.querySelector('.shift-list');
 
