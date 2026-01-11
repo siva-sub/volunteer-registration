@@ -26,8 +26,11 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const state = {
     isAuthenticated: false,
-    registrations: [],
-    slots: [],
+    currentView: 'events', // 'events' or 'dashboard'
+    activeEventId: null,
+    events: [],
+    registrations: [], // registrations for active event
+    slots: [], // slots for active event
     selectedDateFilter: 'all',
     regIdToDelete: null
 };
@@ -37,26 +40,54 @@ const state = {
 // =====================================================
 
 const elements = {
+    // Defines all interactive elements
     authScreen: document.getElementById('authScreen'),
+    eventsSection: document.getElementById('eventsSection'),
     adminDashboard: document.getElementById('adminDashboard'),
+
+    // Auth
     authForm: document.getElementById('authForm'),
     adminPassword: document.getElementById('adminPassword'),
     authError: document.getElementById('authError'),
 
+    // Events List
+    eventsGrid: document.getElementById('eventsGrid'),
+    createEventBtn: document.getElementById('createEventBtn'),
+
+    // Dashboard Header
+    backToEventsBtn: document.getElementById('backToEventsBtn'),
+    currentEventTitle: document.getElementById('currentEventTitle'),
+    copyLinkBtn: document.getElementById('copyLinkBtn'),
+    eventSettingsBtn: document.getElementById('eventSettingsBtn'),
+
+    // Stats
     totalRegistrations: document.getElementById('totalRegistrations'),
     totalSlotsFilled: document.getElementById('totalSlotsFilled'),
     slotsRemaining: document.getElementById('slotsRemaining'),
 
+    // Dashboard Actions
     dateFilter: document.getElementById('dateFilter'),
     refreshBtn: document.getElementById('refreshBtn'),
     exportBtn: document.getElementById('exportBtn'),
 
+    // Tables
     tableBody: document.getElementById('tableBody'),
     tableEmpty: document.getElementById('tableEmpty'),
-
     overviewGrid: document.getElementById('overviewGrid'),
 
-    // Edit Modal Elements
+    // Create Event Modal
+    eventModal: document.getElementById('eventModal'),
+    eventModalClose: document.getElementById('eventModalClose'),
+    eventForm: document.getElementById('eventForm'),
+    eventTitle: document.getElementById('eventTitle'),
+    orgName: document.getElementById('orgName'),
+    contactPerson: document.getElementById('contactPerson'),
+    contactWhatsapp: document.getElementById('contactWhatsapp'),
+    eventStartDate: document.getElementById('eventStartDate'),
+    eventEndDate: document.getElementById('eventEndDate'),
+    eventCancelBtn: document.getElementById('eventCancelBtn'),
+
+    // Edit Registration Modal
     editModal: document.getElementById('editModal'),
     editModalClose: document.getElementById('editModalClose'),
     editForm: document.getElementById('editForm'),
@@ -66,14 +97,15 @@ const elements = {
     editEmail: document.getElementById('editEmail'),
     editCancelBtn: document.getElementById('editCancelBtn'),
 
-    sendRemindersBtn: document.getElementById('sendRemindersBtn'),
-    remindersStatus: document.getElementById('remindersStatus'),
-
     // Delete Modal
     deleteModal: document.getElementById('deleteModal'),
     deleteModalClose: document.getElementById('deleteModalClose'),
     deleteCancelBtn: document.getElementById('deleteCancelBtn'),
-    deleteConfirmBtn: document.getElementById('deleteConfirmBtn')
+    deleteConfirmBtn: document.getElementById('deleteConfirmBtn'),
+
+    // Reminders
+    sendRemindersBtn: document.getElementById('sendRemindersBtn'),
+    remindersStatus: document.getElementById('remindersStatus'),
 };
 
 // =====================================================
@@ -105,43 +137,18 @@ function formatTime(timeStr) {
     return `${h12}:${minutes} ${ampm}`;
 }
 
-function formatDateTime(dateTimeStr) {
-    const date = new Date(dateTimeStr);
-    return date.toLocaleDateString('en-US', {
-        day: 'numeric',
-        month: 'short',
-        hour: 'numeric',
-        minute: '2-digit'
-    });
-}
-
-function generateFestivalDates() {
-    const dates = [];
-    const start = new Date('2026-01-17');
-    const end = new Date('2026-01-30');
-    const current = new Date(start);
-
-    while (current <= end) {
-        dates.push(current.toISOString().split('T')[0]);
-        current.setDate(current.getDate() + 1);
-    }
-
-    return dates;
-}
-
 // =====================================================
 // AUTHENTICATION
 // =====================================================
 
 function handleAuth(e) {
     e.preventDefault();
-
     const password = elements.adminPassword.value;
 
     if (password === ADMIN_PASSWORD) {
         state.isAuthenticated = true;
         sessionStorage.setItem('admin_auth', 'true');
-        showDashboard();
+        showEventsList();
     } else {
         elements.authError.textContent = 'Incorrect password. Please try again.';
         elements.authError.classList.add('visible');
@@ -152,73 +159,335 @@ function handleAuth(e) {
 function checkExistingAuth() {
     if (sessionStorage.getItem('admin_auth') === 'true') {
         state.isAuthenticated = true;
-        showDashboard();
+        showEventsList();
     }
 }
 
-function showDashboard() {
+// =====================================================
+// VIEW MANAGEMENT
+// =====================================================
+
+async function showEventsList() {
+    state.currentView = 'events';
+    state.activeEventId = null;
+
     elements.authScreen.hidden = true;
+    elements.adminDashboard.hidden = true;
+    elements.eventsSection.hidden = false;
+
+    await loadEvents();
+}
+
+async function showEventDashboard(eventId) {
+    state.currentView = 'dashboard';
+    state.activeEventId = eventId;
+
+    // Find event details locally if available, or fetch
+    const event = state.events.find(e => e.id === eventId);
+    if (event) {
+        elements.currentEventTitle.textContent = event.title;
+        elements.dateFilter.innerHTML = '<option value="all">All Dates</option>'; // Reset filter
+    }
+
+    elements.eventsSection.hidden = true;
     elements.adminDashboard.hidden = false;
-    loadData();
+
+    await loadEventDetails(eventId);
 }
 
+
 // =====================================================
-// DATA LOADING
+// EVENTS MANAGEMENT
 // =====================================================
 
-async function loadData() {
-    await Promise.all([
-        loadSlots(),
-        loadRegistrations()
-    ]);
+async function loadEvents() {
+    elements.eventsGrid.innerHTML = '<p class="table-loading">Loading events...</p>';
 
-    renderStats();
-    renderDateFilter();
-    renderTable();
-    renderOverview();
-}
-
-async function loadSlots() {
     try {
-        const { data, error } = await supabase
-            .from('shift_slots')
-            .select('*')
-            .gte('date', '2026-01-17')
-            .lte('date', '2026-01-30')
-            .order('date')
-            .order('shift_name');
+        const { data, error } = await supabase.rpc('admin_get_events', { p_password: ADMIN_PASSWORD });
 
         if (error) throw error;
-        state.slots = data || [];
+
+        state.events = data || [];
+        renderEventsGrid();
     } catch (error) {
-        console.error('Error loading slots:', error);
+        console.error('Error loading events:', error);
+        elements.eventsGrid.innerHTML = '<p class="error-msg">Failed to load events.</p>';
     }
 }
 
-async function loadRegistrations() {
+function renderEventsGrid() {
+    if (state.events.length === 0) {
+        elements.eventsGrid.innerHTML = `
+            <div class="empty-state">
+                <p>No events found. Create your first event!</p>
+            </div>
+        `;
+        return;
+    }
+
+    elements.eventsGrid.innerHTML = state.events.map(event => `
+        <div class="event-card" data-id="${event.id}">
+            <div class="event-card-header">
+                <h3 class="event-card-title">${event.title}</h3>
+                <span class="event-status ${event.active ? 'active' : 'inactive'}">
+                    ${event.active ? 'Active' : 'Archived'}
+                </span>
+            </div>
+            <p class="event-card-subtitle">${event.description || 'No description'}</p>
+            <div class="event-card-details">
+                <p><strong>Contact:</strong> ${event.contact_person}</p>
+                <p><strong>Dates:</strong> ${formatDate(event.dates_config?.start)} - ${formatDate(event.dates_config?.end)}</p>
+            </div>
+            <div class="event-card-actions">
+                <button class="action-btn action-btn--primary manage-event-btn">Manage</button>
+                <div class="event-card-secondary-actions">
+                    <button class="action-icon-btn edit-event-btn" title="Edit Event">✏️</button>
+                    <button class="action-icon-btn delete-event-btn" title="Delete Event">🗑️</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    // Attach listeners
+    document.querySelectorAll('.manage-event-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const card = e.target.closest('.event-card');
+            showEventDashboard(card.dataset.id);
+        });
+    });
+
+    document.querySelectorAll('.edit-event-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const card = e.target.closest('.event-card');
+            openEditEventModal(card.dataset.id);
+        });
+    });
+
+    document.querySelectorAll('.delete-event-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const card = e.target.closest('.event-card');
+            handleDeleteEvent(card.dataset.id);
+        });
+    });
+}
+
+function openCreateEventModal() {
+    state.editingEventId = null;
+    elements.eventForm.reset();
+    elements.eventModal.querySelector('.modal-title').textContent = 'Create Event';
+    elements.eventModal.hidden = false;
+}
+
+function openEditEventModal(eventId) {
+    const event = state.events.find(e => e.id === eventId);
+    if (!event) return;
+
+    state.editingEventId = eventId;
+    elements.eventTitle.value = event.title;
+    elements.orgName.value = event.organization_name;
+    elements.contactPerson.value = event.contact_person;
+    elements.contactWhatsapp.value = event.contact_whatsapp;
+    elements.eventStartDate.value = event.dates_config?.start;
+    elements.eventEndDate.value = event.dates_config?.end;
+
+    elements.eventModal.querySelector('.modal-title').textContent = 'Edit Event';
+    elements.eventModal.hidden = false;
+}
+
+function closeEventModal() {
+    elements.eventModal.hidden = true;
+}
+
+async function handleCreateEventSubmit(e) {
+    e.preventDefault();
+
+    const btn = elements.eventForm.querySelector('button[type="submit"]');
+    const originalText = btn.textContent;
+    btn.textContent = state.editingEventId ? 'Saving...' : 'Creating...';
+    btn.disabled = true;
+
     try {
-        // Use secure RPC function with password
-        const { data, error } = await supabase.rpc('admin_get_registrations', {
-            p_password: ADMIN_PASSWORD
+        const title = elements.eventTitle.value;
+        const orgName = elements.orgName.value;
+        const person = elements.contactPerson.value;
+        const whatsapp = elements.contactWhatsapp.value;
+        const start = elements.eventStartDate.value;
+        const end = elements.eventEndDate.value;
+        const datesConfig = { start, end };
+
+        if (state.editingEventId) {
+            // UPDATE
+            const { data, error } = await supabase.rpc('admin_update_event', {
+                p_password: ADMIN_PASSWORD,
+                p_event_id: state.editingEventId,
+                p_title: title,
+                p_organization_name: orgName,
+                p_contact_person: person,
+                p_contact_whatsapp: whatsapp,
+                p_active: true // Keep active for now
+            });
+
+            if (error) throw error;
+
+            closeEventModal();
+            await loadEvents();
+
+        } else {
+            // CREATE
+            const { data: eventData, error: eventError } = await supabase
+                .from('events')
+                .insert({
+                    title,
+                    organization_name: orgName,
+                    description: 'Volunteer Registration',
+                    contact_person: person,
+                    contact_whatsapp: whatsapp,
+                    dates_config: datesConfig,
+                    active: true
+                })
+                .select()
+                .single();
+
+            if (eventError) throw eventError;
+
+            // 2. Generate Default Slots for this event
+            await generateDefaultSlots(eventData.id, start, end);
+
+            closeEventModal();
+            await loadEvents();
+        } // End if/else
+
+    } catch (error) {
+        console.error('Error creating event:', error);
+        alert('Failed to create event: ' + error.message);
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+
+async function generateDefaultSlots(eventId, startStr, endStr) {
+    const slots = [];
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+
+    // Iterate dates matches generateFestivalDates logic
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        const dayOfWeek = d.toLocaleDateString('en-US', { weekday: 'Long' }); // e.g. Saturday
+
+        // Morning Slot
+        slots.push({
+            event_id: eventId,
+            date: dateStr,
+            day_of_week: dayOfWeek,
+            shift_name: 'Morning',
+            start_time: '08:00',
+            end_time: '12:00',
+            capacity: 50, // Default capacity
+            registered_count: 0
+        });
+
+        // Evening Slot
+        slots.push({
+            event_id: eventId,
+            date: dateStr,
+            day_of_week: dayOfWeek,
+            shift_name: 'Evening',
+            start_time: '16:00',
+            end_time: '20:00',
+            capacity: 50, // Default capacity
+            registered_count: 0
+        });
+    }
+
+    const { error } = await supabase.from('shift_slots').insert(slots);
+    if (error) {
+        console.error('Error generating slots:', error);
+        alert('Event created but slots generation failed. Check console.');
+    }
+}
+
+async function handleDeleteEvent(eventId) {
+    if (!confirm('Are you sure you want to delete this event? This action will archive it and hide it from the public.')) return;
+
+    try {
+        const { data, error } = await supabase.rpc('admin_delete_event', {
+            p_password: ADMIN_PASSWORD,
+            p_event_id: eventId
         });
 
         if (error) throw error;
+        await loadEvents();
 
-        if (data.success) {
-            state.registrations = data.data || [];
-        } else {
-            console.error('Error fetching registrations:', data.error);
-        }
-    } catch (error) {
-        console.error('Error loading registrations:', error);
+    } catch (e) {
+        console.error(e);
+        alert('Failed to delete event: ' + e.message);
     }
 }
 
 // =====================================================
-// RENDERING
+// DASHBOARD LOGIC (Single Event)
 // =====================================================
 
+async function loadEventDetails(eventId) {
+    try {
+        // Fetch event details + slots
+        const { data, error } = await supabase.rpc('get_event_details', { p_event_id: eventId });
+
+        if (error) throw error;
+
+        state.slots = data.slots || [];
+
+        // Fetch registrations for this event
+        // We can re-use the existing admin_get_registrations but filtering by event ID would be better.
+        // Assuming the existing RPC fetches ALL registrations, we need to filter client side or update RPC.
+        // The existing RPC gets all registrations. However, since registrations are linked to slots, and slots are linked to events,
+        // we can filter client-side for now.
+
+        // Better: Update RPC admin_get_registrations to take p_event_id?
+        // Or just filter here: Regs -> Slots -> Event
+
+        const { data: regData, error: regError } = await supabase.rpc('admin_get_registrations', {
+            p_password: ADMIN_PASSWORD
+        });
+
+        if (regError) throw regError;
+        if (regData.success) {
+            // Filter registrations that belong to this event (meaning they have at least one slot in this event)
+            const allRegs = regData.data || [];
+
+            // Set of slot IDs for this event
+            const eventSlotIds = new Set(state.slots.map(s => s.id));
+
+            state.registrations = allRegs.filter(reg => {
+                // If reg has no shifts, it's orphan?
+                if (!reg.shifts || reg.shifts.length === 0) return false;
+                // Check if any shift belongs to this event
+                return reg.shifts.some(s => eventSlotIds.has(s.slot_id) || s.date >= '2020-01-01'); // Fallback logic if slot_id matching fails? 
+                // Actually the API returns `shifts` array with details. We can match dates if we trust them, but slot_id match is best.
+                // admin_get_registrations returns `slot_id` in shifts array? Let's assume so.
+                // Wait, the previous `admin.js` implementation of `renderTable` uses `s.date` access. 
+                // The RPC result structure for `shifts` likely contains slot info.
+
+                // Let's filter by checking if the registration's shifts overlap with our event's slots
+                return reg.shifts.some(s => eventSlotIds.has(s.slot_id));
+            });
+        }
+
+        renderStats();
+        renderDateFilter();
+        renderTable();
+        renderOverview();
+
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+    }
+}
+
 function renderStats() {
+    // Stats scope: Current Event
     const totalRegs = state.registrations.length;
     const totalFilled = state.slots.reduce((sum, slot) => sum + slot.registered_count, 0);
     const totalCapacity = state.slots.reduce((sum, slot) => sum + slot.capacity, 0);
@@ -230,23 +499,29 @@ function renderStats() {
 }
 
 function renderDateFilter() {
-    // Only render if empty to preserve selection
-    if (elements.dateFilter.options.length > 1) return;
-
-    const dates = generateFestivalDates();
+    // Populate dates based on EVENT slots, not hardcoded
+    // Get unique dates from slots
+    const uniqueDates = [...new Set(state.slots.map(s => s.date))].sort();
 
     elements.dateFilter.innerHTML = `
-    <option value="all">All Dates</option>
-    ${dates.map(dateStr => `
-      <option value="${dateStr}">${formatDateFull(dateStr)}</option>
-    `).join('')}
-  `;
+        <option value="all">All Dates</option>
+        ${uniqueDates.map(dateStr => `
+            <option value="${dateStr}">${formatDateFull(dateStr)}</option>
+        `).join('')}
+    `;
+
+    // Restore selection if valid
+    if (uniqueDates.includes(state.selectedDateFilter)) {
+        elements.dateFilter.value = state.selectedDateFilter;
+    } else {
+        state.selectedDateFilter = 'all';
+        elements.dateFilter.value = 'all';
+    }
 }
 
 function renderTable() {
     let filteredRegistrations = state.registrations;
 
-    // Apply date filter
     if (state.selectedDateFilter !== 'all') {
         filteredRegistrations = state.registrations.filter(reg =>
             reg.shifts?.some(s => s.date === state.selectedDateFilter)
@@ -264,38 +539,34 @@ function renderTable() {
     elements.tableBody.innerHTML = filteredRegistrations.map(reg => {
         let shifts = reg.shifts || [];
 
-        // If filtering by date, valid shifts are those matching filter
+        // Apply filter to displayed badges too? usually yes
         if (state.selectedDateFilter !== 'all') {
             shifts = shifts.filter(s => s.date === state.selectedDateFilter);
         }
 
         const shiftBadges = shifts.map(s => `
-      <span class="shift-badge shift-badge--${s.shift_name.toLowerCase()}">
-        ${formatDate(s.date)} ${s.shift_name}
-      </span>
-    `).join('');
+            <span class="shift-badge shift-badge--${s.shift_name.toLowerCase()}">
+                ${formatDate(s.date)} ${s.shift_name}
+            </span>
+        `).join('');
 
         return `
-      <tr data-id="${reg.id}">
-        <td><strong>${reg.full_name}</strong></td>
-        <td>${reg.phone}</td>
-        <td class="cell-email">${reg.email || '-'}</td>
-        <td>
-          <div class="shift-badges">${shiftBadges}</div>
-        </td>
-        <td class="cell-actions">
-           <button class="action-icon-btn edit-btn" title="Edit">
-             ✏️
-           </button>
-           <button class="action-icon-btn delete-btn" title="Delete">
-             🗑️
-           </button>
-        </td>
-      </tr>
-    `;
+            <tr data-id="${reg.id}">
+                <td><strong>${reg.full_name}</strong></td>
+                <td>${reg.phone}</td>
+                <td class="cell-email">${reg.email || '-'}</td>
+                <td>
+                    <div class="shift-badges">${shiftBadges}</div>
+                </td>
+                <td class="cell-actions">
+                    <button class="action-icon-btn edit-btn" title="Edit">✏️</button>
+                    <button class="action-icon-btn delete-btn" title="Delete">🗑️</button>
+                </td>
+            </tr>
+        `;
     }).join('');
 
-    // Attach event listeners
+    // Attach listeners
     document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const tr = e.target.closest('tr');
@@ -312,48 +583,50 @@ function renderTable() {
 }
 
 function renderOverview() {
-    const dates = generateFestivalDates();
+    // Group slots by date
+    const uniqueDates = [...new Set(state.slots.map(s => s.date))].sort();
 
-    elements.overviewGrid.innerHTML = dates.map(dateStr => {
+    elements.overviewGrid.innerHTML = uniqueDates.map(dateStr => {
         const dateSlots = state.slots.filter(s => s.date === dateStr);
 
         const shiftsHtml = dateSlots.map(slot => {
             const remaining = slot.capacity - slot.registered_count;
             let countClass = 'available';
             if (remaining === 0) countClass = 'full';
-            else if (remaining === 1) countClass = 'limited';
+            else if (remaining <= 5) countClass = 'limited';
 
-            // Get volunteers for this slot
+            // Find volunteers for this slot
             const volunteers = state.registrations.filter(reg =>
                 reg.shifts?.some(s => s.slot_id === slot.id)
             ).map(reg => reg.full_name);
 
             return `
-        <div class="overview-shift">
-          <span class="overview-shift-name">${slot.shift_name} (${formatTime(slot.start_time)} - ${formatTime(slot.end_time)})</span>
-          <span class="overview-shift-count overview-shift-count--${countClass}">
-            ${slot.registered_count}/${slot.capacity}
-          </span>
-        </div>
-        ${volunteers.length > 0 ? `
-          <div class="overview-volunteers">
-            ${volunteers.map(name => `<div class="overview-volunteer">• ${name}</div>`).join('')}
-          </div>
-        ` : ''}
-      `;
+                <div class="overview-shift">
+                    <span class="overview-shift-name">${slot.shift_name} (${formatTime(slot.start_time)} - ${formatTime(slot.end_time)})</span>
+                    <span class="overview-shift-count overview-shift-count--${countClass}">
+                        ${slot.registered_count}/${slot.capacity}
+                    </span>
+                </div>
+                ${volunteers.length > 0 ? `
+                    <div class="overview-volunteers">
+                        ${volunteers.map(name => `<div class="overview-volunteer">• ${name}</div>`).join('')}
+                    </div>
+                ` : ''}
+            `;
         }).join('');
 
         return `
-      <div class="overview-card">
-        <div class="overview-date">${formatDateFull(dateStr)}</div>
-        <div class="overview-shifts">${shiftsHtml}</div>
-      </div>
-    `;
+            <div class="overview-card">
+                <div class="overview-date">${formatDateFull(dateStr)}</div>
+                <div class="overview-shifts">${shiftsHtml}</div>
+            </div>
+        `;
     }).join('');
 }
 
+
 // =====================================================
-// EDIT / DELETE ACTIONS
+// MODAL ACTIONS (Edit / Delete)
 // =====================================================
 
 function openEditModal(regId) {
@@ -364,7 +637,6 @@ function openEditModal(regId) {
     elements.editName.value = reg.full_name;
     elements.editPhone.value = reg.phone;
     elements.editEmail.value = reg.email || '';
-
     elements.editModal.hidden = false;
 }
 
@@ -375,14 +647,12 @@ function closeEditModal() {
 
 async function handleEditSubmit(e) {
     e.preventDefault();
-
     const id = elements.editRegId.value;
     const fullName = elements.editName.value;
     const phone = elements.editPhone.value;
     const email = elements.editEmail.value;
 
     const btn = elements.editForm.querySelector('button[type="submit"]');
-    const originalText = btn.textContent;
     btn.textContent = 'Saving...';
     btn.disabled = true;
 
@@ -399,15 +669,15 @@ async function handleEditSubmit(e) {
 
         if (data.success) {
             closeEditModal();
-            await loadData(); // Refresh data
+            await loadEventDetails(state.activeEventId);
         } else {
-            alert('Error updating: ' + data.error);
+            alert('Error: ' + data.error);
         }
     } catch (error) {
         console.error('Update failed:', error);
-        alert('Failed to update registration');
+        alert('Failed to update.');
     } finally {
-        btn.textContent = originalText;
+        btn.textContent = 'Save Changes';
         btn.disabled = false;
     }
 }
@@ -418,14 +688,12 @@ function openDeleteModal(regId) {
 }
 
 function closeDeleteModal() {
-    state.regIdToDelete = null;
     elements.deleteModal.hidden = true;
+    state.regIdToDelete = null;
 }
 
 async function handleConfirmDelete() {
     if (!state.regIdToDelete) return;
-
-    const originalText = elements.deleteConfirmBtn.textContent;
     elements.deleteConfirmBtn.textContent = 'Deleting...';
     elements.deleteConfirmBtn.disabled = true;
 
@@ -436,35 +704,58 @@ async function handleConfirmDelete() {
         });
 
         if (error) throw error;
-
         if (data.success) {
             closeDeleteModal();
-            await loadData(); // Refresh data
+            await loadEventDetails(state.activeEventId);
         } else {
-            alert('Error deleting: ' + data.error);
+            alert('Error: ' + data.error);
         }
     } catch (error) {
         console.error('Delete failed:', error);
-        alert('Failed to delete registration');
+        alert('Failed to delete.');
     } finally {
-        elements.deleteConfirmBtn.textContent = originalText;
+        elements.deleteConfirmBtn.textContent = 'Delete Registration';
         elements.deleteConfirmBtn.disabled = false;
     }
 }
 
 // =====================================================
-// CSV EXPORT
+// OTHER ACTIONS
 // =====================================================
 
+function copyEventLink() {
+    if (!state.activeEventId) return;
+    const url = `${window.location.origin}/?event_id=${state.activeEventId}`;
+    navigator.clipboard.writeText(url).then(() => {
+        const btn = elements.copyLinkBtn;
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = original, 2000);
+    });
+}
+
+async function handleRefresh() {
+    elements.refreshBtn.disabled = true;
+    if (state.currentView === 'events') {
+        await loadEvents();
+    } else {
+        await loadEventDetails(state.activeEventId);
+    }
+    elements.refreshBtn.disabled = false;
+}
+
 function exportToCSV() {
+    if (!state.registrations.length) return;
+
+    // Same CSV logic but uses active state.registrations
     const rows = [
         ['Name', 'Phone', 'Email', 'Date', 'Day', 'Shift', 'Start Time', 'End Time', 'Registered At']
     ];
 
     state.registrations.forEach(reg => {
         const shifts = reg.shifts || [];
-
         shifts.forEach(slot => {
+            // Optional: Filter by event only, but state.registrations is already filtered
             rows.push([
                 reg.full_name,
                 reg.phone,
@@ -486,29 +777,17 @@ function exportToCSV() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `volunteer-registrations-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `registrations-${formatDateFull(new Date().toISOString())}.csv`;
     link.click();
 }
 
-// =====================================================
-// REMINDERS
-// =====================================================
-
 async function sendReminders() {
-    // Prompt for date (default: tomorrow)
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const defaultDate = tomorrow.toISOString().split('T')[0];
-
-    // For testing ease, we suggest the start of festival
-    const testDate = '2026-01-17';
-
-    const targetDate = prompt('Enter date to send reminders for (YYYY-MM-DD):', testDate);
+    // This calls the generic remind-all
+    const targetDate = prompt('Enter date to send reminders for (YYYY-MM-DD):', new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0]);
     if (!targetDate) return;
 
     elements.sendRemindersBtn.disabled = true;
-    elements.remindersStatus.textContent = `Sending reminders for ${targetDate}...`;
-    elements.remindersStatus.classList.remove('error');
+    elements.remindersStatus.textContent = 'Sending...';
 
     try {
         const response = await fetch(`${SUPABASE_URL}/functions/v1/send-reminders`, {
@@ -519,74 +798,59 @@ async function sendReminders() {
             },
             body: JSON.stringify({
                 password: ADMIN_PASSWORD,
-                targetDate: targetDate, // Send the target date
-                force: true // For testing/demo purposes, force resend even if already marked
+                targetDate: targetDate,
+                force: true
             })
         });
 
         const result = await response.json();
-
         if (result.success) {
-            elements.remindersStatus.textContent = result.message || `Reminders sent for ${targetDate}!`;
-            await loadData(); // Refresh to see reminder status updates if any
+            alert('Reminders sent successfully!');
+            elements.remindersStatus.textContent = result.message;
         } else {
-            throw new Error(result.error || 'Failed to send reminders');
+            elements.remindersStatus.textContent = 'Failed';
+            alert(result.error);
         }
-    } catch (error) {
-        console.error('Error sending reminders:', error);
-        elements.remindersStatus.textContent = `Error: ${error.message}`;
-        elements.remindersStatus.classList.add('error');
+    } catch (e) {
+        console.error(e);
+        elements.remindersStatus.textContent = 'Error';
     } finally {
         elements.sendRemindersBtn.disabled = false;
     }
 }
 
-// =====================================================
-// EVENT HANDLERS
-// =====================================================
-
-function handleDateFilterChange(e) {
-    state.selectedDateFilter = e.target.value;
-    renderTable();
-}
-
-async function handleRefresh() {
-    elements.refreshBtn.disabled = true;
-    await loadData();
-    elements.refreshBtn.disabled = false;
-}
 
 // =====================================================
 // INITIALIZATION
 // =====================================================
 
 function init() {
-    // Check auth
     checkExistingAuth();
 
-    // Event listeners
+    // Global Listeners
     elements.authForm.addEventListener('submit', handleAuth);
-    elements.dateFilter.addEventListener('change', handleDateFilterChange);
+    elements.createEventBtn.addEventListener('click', openCreateEventModal);
+    elements.backToEventsBtn.addEventListener('click', showEventsList);
     elements.refreshBtn.addEventListener('click', handleRefresh);
+    elements.copyLinkBtn.addEventListener('click', copyEventLink);
+    elements.dateFilter.addEventListener('change', (e) => {
+        state.selectedDateFilter = e.target.value;
+        renderTable();
+    });
     elements.exportBtn.addEventListener('click', exportToCSV);
     elements.sendRemindersBtn.addEventListener('click', sendReminders);
 
-    // Edit Modal Listeners
+    // Event Modal
+    elements.eventModalClose.addEventListener('click', closeEventModal);
+    elements.eventCancelBtn.addEventListener('click', closeEventModal);
+    elements.eventForm.addEventListener('submit', handleCreateEventSubmit);
+
+    // Edit Modal
     elements.editModalClose.addEventListener('click', closeEditModal);
     elements.editCancelBtn.addEventListener('click', closeEditModal);
     elements.editForm.addEventListener('submit', handleEditSubmit);
 
-    // Close modal on outside click
-    window.addEventListener('click', (e) => {
-        if (e.target === elements.editModal) {
-            closeEditModal();
-        }
-        if (e.target === elements.deleteModal) {
-            closeDeleteModal();
-        }
-    });
-
-    // Delete Modal Listeners
+    // Delete Modal
     elements.deleteModalClose.addEventListener('click', closeDeleteModal);
     elements.deleteCancelBtn.addEventListener('click', closeDeleteModal);
     elements.deleteConfirmBtn.addEventListener('click', handleConfirmDelete);

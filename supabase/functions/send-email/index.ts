@@ -19,11 +19,19 @@ interface Slot {
   end_time: string;
 }
 
+interface EventDetails {
+  title: string;
+  organization_name: string;
+  contact_person: string;
+  contact_whatsapp: string;
+}
+
 interface EmailRequest {
   type: 'confirmation' | 'reminder';
   name: string;
   email: string;
   slots: Slot[];
+  event_details?: EventDetails; // Optional for backward compatibility, but recommended
 }
 
 function formatTime(timeStr: string): string {
@@ -42,7 +50,18 @@ function formatDate(dateStr: string): string {
   return `${day} ${month} ${year}`;
 }
 
-function generateConfirmationEmail(name: string, slots: Slot[]): string {
+function sanitizeWhatsApp(number: string): string {
+  // Remove all non-numeric characters
+  return number.replace(/\D/g, '');
+}
+
+function generateConfirmationEmail(name: string, slots: Slot[], event: EventDetails): string {
+  const orgName = event.organization_name || 'Volunteer Organization';
+  const eventTitle = event.title || 'Volunteer Event';
+  const contactName = event.contact_person || 'the organizer';
+  const contactWa = event.contact_whatsapp ? sanitizeWhatsApp(event.contact_whatsapp) : '';
+  const contactLink = contactWa ? `https://wa.me/${contactWa}` : '#';
+
   const shiftsHtml = slots.map(slot => `
     <tr>
       <td style="padding: 12px; border-bottom: 1px solid #E5DCD3;">
@@ -70,8 +89,8 @@ function generateConfirmationEmail(name: string, slots: Slot[]): string {
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 30px;">
           <div style="font-size: 48px; margin-bottom: 10px;">🙏</div>
-          <h1 style="color: #8B4513; font-size: 24px; margin: 0;">Sri Thendayuthapani Temple</h1>
-          <p style="color: #6B5B4F; font-size: 14px; margin: 5px 0 0;">Festival Volunteer Registration</p>
+          <h1 style="color: #8B4513; font-size: 24px; margin: 0;">${orgName}</h1>
+          <p style="color: #6B5B4F; font-size: 14px; margin: 5px 0 0;">${eventTitle}</p>
         </div>
         
         <!-- Content Card -->
@@ -84,8 +103,7 @@ function generateConfirmationEmail(name: string, slots: Slot[]): string {
           </p>
           
           <p style="color: #6B5B4F; font-size: 14px; line-height: 1.6; margin: 0 0 25px;">
-            Thank you for volunteering to help with towel and soap sales at the temple. 
-            Your service during the festival period is greatly appreciated.
+            Thank you for volunteering. Your service is greatly appreciated.
           </p>
           
           <h3 style="color: #8B4513; font-size: 16px; margin: 0 0 15px;">Your Volunteer Shifts:</h3>
@@ -110,7 +128,7 @@ function generateConfirmationEmail(name: string, slots: Slot[]): string {
           </div>
           
           <p style="color: #6B5B4F; font-size: 14px; line-height: 1.6; margin: 0;">
-            If you need to make any changes to your registration, please contact the temple directly.
+            If you need to make any changes to your registration, please contact ${contactName} at <a href="${contactLink}" style="color: #4A7C59; font-weight: 600;">${contactLink}</a>
           </p>
           
         </div>
@@ -118,8 +136,8 @@ function generateConfirmationEmail(name: string, slots: Slot[]): string {
         <!-- Footer -->
         <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #E5DCD3;">
           <p style="color: #8B7B6F; font-size: 12px; margin: 0;">
-            Sri Thendayuthapani Temple<br>
-            Festival 2026 — Towel & Soap Sales Volunteer Coordination
+            ${orgName}<br>
+            ${eventTitle}
           </p>
         </div>
         
@@ -129,7 +147,10 @@ function generateConfirmationEmail(name: string, slots: Slot[]): string {
   `;
 }
 
-function generateReminderEmail(name: string, slots: Slot[]): string {
+function generateReminderEmail(name: string, slots: Slot[], event: EventDetails): string {
+  const orgName = event.organization_name || 'Volunteer Organization';
+  const eventTitle = event.title || 'Volunteer Event';
+
   const shiftsHtml = slots.map(slot => `
     <div style="background: #FFF3E0; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
       <strong style="color: #E65100;">${slot.shift_name} Shift</strong><br>
@@ -156,22 +177,22 @@ function generateReminderEmail(name: string, slots: Slot[]): string {
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 30px;">
           <div style="font-size: 48px; margin-bottom: 10px;">🙏</div>
-          <h1 style="color: #8B4513; font-size: 24px; margin: 0;">Sri Thendayuthapani Temple</h1>
-          <p style="color: #6B5B4F; font-size: 14px; margin: 5px 0 0;">Volunteer Shift Reminder</p>
+          <h1 style="color: #8B4513; font-size: 24px; margin: 0;">${orgName}</h1>
+          <p style="color: #6B5B4F; font-size: 14px; margin: 5px 0 0;">${eventTitle} - Reminder</p>
         </div>
         
         <!-- Content Card -->
         <div style="background: white; border-radius: 16px; padding: 30px; box-shadow: 0 4px 6px rgba(45, 33, 24, 0.07);">
           
-          <h2 style="color: #E6A817; font-size: 20px; margin: 0 0 10px;">⏰ Reminder: Your Shift is Tomorrow!</h2>
+          <h2 style="color: #E6A817; font-size: 20px; margin: 0 0 10px;">⏰ Shift Tomorrow!</h2>
           
           <p style="color: #2D2118; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
             Dear ${name},
           </p>
           
           <p style="color: #6B5B4F; font-size: 14px; line-height: 1.6; margin: 0 0 25px;">
-            This is a friendly reminder that you are scheduled to volunteer for towel and soap sales 
-            at the temple <strong>tomorrow (${dateDisplay})</strong>.
+            This is a friendly reminder that you are scheduled to volunteer 
+            <strong>tomorrow (${dateDisplay})</strong>.
           </p>
           
           <h3 style="color: #8B4513; font-size: 16px; margin: 0 0 15px;">Your Shift(s):</h3>
@@ -180,7 +201,7 @@ function generateReminderEmail(name: string, slots: Slot[]): string {
           
           <div style="background: #F4E4C1; border-radius: 8px; padding: 15px; margin-top: 20px;">
             <p style="color: #8B4513; font-size: 14px; margin: 0;">
-              <strong>📍 Location:</strong> Towel & Soap Sales Counter<br>
+              <strong>📍 Note:</strong><br>
               Please arrive 10-15 minutes before your shift starts.
             </p>
           </div>
@@ -190,8 +211,8 @@ function generateReminderEmail(name: string, slots: Slot[]): string {
         <!-- Footer -->
         <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #E5DCD3;">
           <p style="color: #8B7B6F; font-size: 12px; margin: 0;">
-            Sri Thendayuthapani Temple<br>
-            Festival 2026 — Thank you for your service!
+            ${orgName}<br>
+            Thank you for your service!
           </p>
         </div>
         
@@ -208,7 +229,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, name, email, slots }: EmailRequest = await req.json();
+    const { type, name, email, slots, event_details }: EmailRequest = await req.json();
 
     if (!email || !name || !slots || slots.length === 0) {
       return new Response(
@@ -217,14 +238,22 @@ serve(async (req) => {
       );
     }
 
+    // Default event details if missing (backward compatibility)
+    const event = event_details || {
+      title: 'Volunteer Event',
+      organization_name: 'Volunteer Organization',
+      contact_person: 'the organizer',
+      contact_whatsapp: ''
+    };
+
     // Generate email content
     const subject = type === 'confirmation'
-      ? 'Volunteer Registration Confirmed — Sri Thendayuthapani Temple'
-      : 'Reminder: Your Volunteer Shift is Tomorrow — Sri Thendayuthapani Temple';
+      ? `Volunteer Registration Confirmed — ${event.title}`
+      : `Reminder: Your Shift for ${event.title} is Tomorrow`;
 
     const html = type === 'confirmation'
-      ? generateConfirmationEmail(name, slots)
-      : generateReminderEmail(name, slots);
+      ? generateConfirmationEmail(name, slots, event)
+      : generateReminderEmail(name, slots, event);
 
     // Send via Resend API
     const response = await fetch('https://api.resend.com/emails', {

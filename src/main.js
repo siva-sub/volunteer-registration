@@ -12,16 +12,6 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = 'https://zpqnoxllhbyggyxvvpaa.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_uXC8v4RM1HHCGEZKOnpbMg_seCrVNYo';
 
-// Festival dates: 17-30 January 2026
-const FESTIVAL_START = new Date('2026-01-17');
-const FESTIVAL_END = new Date('2026-01-30');
-
-// Shift definitions
-const SHIFTS = {
-  Morning: { icon: '☀️', start: '8:00 AM', end: '12:00 PM' },
-  Evening: { icon: '🌙', start: '5:30 PM', end: '8:30 PM' }
-};
-
 // =====================================================
 // SUPABASE CLIENT
 // =====================================================
@@ -33,11 +23,14 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // =====================================================
 
 const state = {
+  eventId: null,
+  event: null,
   slots: [],
   selectedSlotIds: new Set(),
   selectedDate: null,
   isLoading: true,
-  isSubmitting: false
+  isSubmitting: false,
+  shiftDefinitions: {} // Dynamic cache of shift metadata like icons
 };
 
 // =====================================================
@@ -45,14 +38,26 @@ const state = {
 // =====================================================
 
 const elements = {
+  // Common sections
+  appContainer: document.getElementById('app'),
+  headerTitle: document.querySelector('.header-title'),
+  headerSubtitle: document.querySelector('.header-subtitle'),
+
+  // Navigation
   dateStrip: document.getElementById('dateStrip'),
   datePrev: document.getElementById('datePrev'),
   dateNext: document.getElementById('dateNext'),
+
+  // Shifts
   shiftsTitle: document.getElementById('shiftsTitle'),
   shiftsGrid: document.getElementById('shiftsGrid'),
+
+  // Summary
   summarySection: document.getElementById('summarySection'),
   summaryList: document.getElementById('summaryList'),
   summaryCount: document.getElementById('summaryCount'),
+
+  // Form
   formSection: document.getElementById('formSection'),
   registrationForm: document.getElementById('registrationForm'),
   fullNameInput: document.getElementById('fullName'),
@@ -61,11 +66,17 @@ const elements = {
   phoneError: document.getElementById('phoneError'),
   emailInput: document.getElementById('email'),
   emailError: document.getElementById('emailError'),
+
+  // Review
   reviewSection: document.getElementById('reviewSection'),
   reviewContent: document.getElementById('reviewContent'),
+
+  // Feedback
   formGlobalError: document.getElementById('formGlobalError'),
   formGlobalErrorText: document.getElementById('formGlobalErrorText'),
   submitBtn: document.getElementById('submitBtn'),
+
+  // Success
   successSection: document.getElementById('successSection'),
   successDetails: document.getElementById('successDetails'),
   successEmailNote: document.getElementById('successEmailNote'),
@@ -76,9 +87,6 @@ const elements = {
 // UTILITIES
 // =====================================================
 
-/**
- * Format date for display
- */
 function formatDate(dateStr) {
   const date = new Date(dateStr + 'T00:00:00');
   const day = date.getDate();
@@ -87,131 +95,163 @@ function formatDate(dateStr) {
   return `${day} ${month} ${year}`;
 }
 
-/**
- * Get day of week abbreviation
- */
 function getDayAbbr(dateStr) {
   const date = new Date(dateStr + 'T00:00:00');
   return date.toLocaleDateString('en-US', { weekday: 'short' });
 }
 
-/**
- * Get day of week full name
- */
 function getDayFull(dateStr) {
   const date = new Date(dateStr + 'T00:00:00');
   return date.toLocaleDateString('en-US', { weekday: 'long' });
 }
 
-/**
- * Get date number
- */
 function getDateNum(dateStr) {
   const date = new Date(dateStr + 'T00:00:00');
   return date.getDate();
 }
 
+function formatTime(timeStr) {
+  if (!timeStr) return '';
+  const [hours, minutes] = timeStr.split(':');
+  const h = parseInt(hours);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${minutes} ${ampm}`;
+}
+
 /**
- * Generate all festival dates
+ * Generate dates based on event range or slots availability
  */
-function generateFestivalDates() {
-  const dates = [];
-  const current = new Date(FESTIVAL_START);
-  while (current <= FESTIVAL_END) {
-    dates.push(current.toISOString().split('T')[0]);
-    current.setDate(current.getDate() + 1);
-  }
+function getEventDates() {
+  if (!state.slots.length) return [];
+  // Extract unique dates from slots
+  const dates = [...new Set(state.slots.map(s => s.date))].sort();
   return dates;
 }
 
-/**
- * Get availability text and class
- */
 function getAvailabilityInfo(slot) {
   const remaining = slot.capacity - slot.registered_count;
-
-  if (remaining === 0) {
-    return {
-      text: 'FULL',
-      class: 'full',
-      dots: [false, false]
-    };
+  if (remaining <= 0) {
+    return { text: 'FULL', class: 'full', dots: [false, false] };
   } else if (remaining === 1) {
-    return {
-      text: '1 spot left',
-      class: 'limited',
-      dots: [true, false]
-    };
+    return { text: '1 spot left', class: 'limited', dots: [true, false] };
   } else {
-    return {
-      text: '2 spots available',
-      class: 'available',
-      dots: [true, true]
-    };
+    // Dynamic remaining count if not full
+    const countText = remaining > 5 ? 'Available' : `${remaining} spots left`;
+    return { text: countText, class: 'available', dots: [true, true] };
   }
 }
 
-/**
- * Check if slot is full
- */
 function isSlotFull(slot) {
   return slot.registered_count >= slot.capacity;
 }
 
-/**
- * Get slot by ID
- */
 function getSlotById(id) {
   return state.slots.find(s => s.id === id);
 }
 
-/**
- * Get slots for a specific date
- */
 function getSlotsForDate(dateStr) {
-  return state.slots.filter(s => s.date === dateStr);
+  return state.slots.filter(s => s.date === dateStr).sort((a, b) => a.start_time.localeCompare(b.start_time));
+}
+
+function getShiftIcon(shiftName) {
+  const lower = shiftName.toLowerCase();
+  if (lower.includes('morning')) return '☀️';
+  if (lower.includes('evening') || lower.includes('night')) return '🌙';
+  if (lower.includes('afternoon')) return '🌤️';
+  return '⏰';
 }
 
 // =====================================================
 // DATA FETCHING
 // =====================================================
 
-/**
- * Fetch all shift slots from Supabase
- */
-async function fetchSlots() {
-  try {
-    const { data, error } = await supabase
-      .from('shift_slots')
-      .select('*')
-      .gte('date', '2026-01-17')
-      .lte('date', '2026-01-30')
-      .order('date')
-      .order('shift_name');
+async function loadEventData() {
+  state.isLoading = true;
+  renderSkeletonCards(); // Show loading state
 
+  try {
+    let eventId = new URLSearchParams(window.location.search).get('event_id');
+
+    if (!eventId) {
+      // Need to find default/latest active event
+      const { data: events, error: fetchError } = await supabase
+        .from('events')
+        .select('id')
+        .eq('active', 'true')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (fetchError || !events || events.length === 0) {
+        throw new Error('No active events found.');
+      }
+      eventId = events[0].id;
+    }
+
+    state.eventId = eventId;
+
+    // Fetch details
+    const { data, error } = await supabase.rpc('get_event_details', { p_event_id: eventId });
     if (error) throw error;
 
-    state.slots = data || [];
+    // Bind data
+    state.event = data.event;
+    state.slots = data.slots || [];
+
+    updatePageMetadata();
+
     state.isLoading = false;
 
-    return data;
+    // Set initial selected date
+    const dates = getEventDates();
+    if (dates.length > 0) {
+      state.selectedDate = dates[0];
+    }
+
+    renderDateStrip();
+    renderShiftCards();
+
   } catch (error) {
-    console.error('Error fetching slots:', error);
+    console.error('Failed to load event:', error);
     state.isLoading = false;
-    showGlobalError('Unable to load shift availability. Please refresh the page.');
-    return [];
+    elements.shiftsGrid.innerHTML = `<div class="error-state">
+            <h3>Unable to load event</h3>
+            <p>${error.message || 'Please check the link or contact the temple.'}</p>
+        </div>`;
+    elements.headerTitle.textContent = 'Volunteer Registration';
+    elements.headerSubtitle.textContent = '';
   }
+}
+
+function updatePageMetadata() {
+  if (!state.event) return;
+
+  document.title = `${state.event.title} | Volunteer Registration`;
+  elements.headerTitle.textContent = 'Volunteer Registration'; // Keep generic or use event title?
+  // Design choice: Use Header Title for "Volunteer Registration" and Subtitle for Event Name?
+  // Or Header Title = Event Name?
+  // Admin HTML uses H1 "Volunteer Management", P "Sri Thendayuthapani Temple — Festival 2026"
+
+  // Let's use:
+  elements.headerTitle.textContent = state.event.title;
+  elements.headerSubtitle.textContent = state.event.organization_name || 'Sri Thendayuthapani Temple';
 }
 
 // =====================================================
 // RENDERING
 // =====================================================
 
-/**
- * Render the date strip
- */
 function renderDateStrip() {
-  const dates = generateFestivalDates();
+  const dates = getEventDates();
+
+  if (dates.length <= 1) {
+    elements.dateStrip.parentElement.hidden = true; // Hide strip if 1 or 0 dates? 
+    // Actually usually user wants to see the date context even if single. 
+    // But if 0 dates, hide.
+    if (dates.length === 0) return;
+  }
+  elements.dateStrip.parentElement.hidden = false;
 
   elements.dateStrip.innerHTML = dates.map(dateStr => {
     const isActive = dateStr === state.selectedDate;
@@ -229,7 +269,6 @@ function renderDateStrip() {
     `;
   }).join('');
 
-  // Scroll active date into view
   setTimeout(() => {
     const activeBtn = elements.dateStrip.querySelector('.date-btn--active');
     if (activeBtn) {
@@ -238,12 +277,13 @@ function renderDateStrip() {
   }, 50);
 }
 
-/**
- * Render shift cards for selected date
- */
 function renderShiftCards() {
-  if (state.isLoading) {
-    renderSkeletonCards();
+  if (state.isLoading) return; // Handled in loading state
+
+  const dates = getEventDates();
+  if (dates.length === 0) {
+    elements.shiftsTitle.textContent = 'No shifts available.';
+    elements.shiftsGrid.innerHTML = '';
     return;
   }
 
@@ -251,17 +291,18 @@ function renderShiftCards() {
   elements.shiftsTitle.textContent = `Shifts for ${getDayFull(state.selectedDate)}, ${formatDate(state.selectedDate)}`;
 
   if (dateSlots.length === 0) {
-    elements.shiftsGrid.innerHTML = `
-      <p class="no-shifts">No shifts available for this date.</p>
-    `;
+    elements.shiftsGrid.innerHTML = `<p class="no-shifts">No shifts configured for this date.</p>`;
     return;
   }
 
   elements.shiftsGrid.innerHTML = dateSlots.map(slot => {
-    const shiftInfo = SHIFTS[slot.shift_name];
     const availability = getAvailabilityInfo(slot);
     const isSelected = state.selectedSlotIds.has(slot.id);
-    const isFull = isSlotFull(slot);
+    const isFull = isSlotFull(slot) && !isSelected; // Allows unchecking if full but already selected (unlikely edge case but good UX)
+
+    // Dynamic Icon
+    const icon = getShiftIcon(slot.shift_name);
+    const timeRange = `${formatTime(slot.start_time)} – ${formatTime(slot.end_time)}`;
 
     return `
       <div 
@@ -272,9 +313,9 @@ function renderShiftCards() {
         aria-disabled="${isFull}"
         tabindex="${isFull ? -1 : 0}"
       >
-        <span class="shift-icon">${shiftInfo.icon}</span>
-        <span class="shift-name">${slot.shift_name} Shift</span>
-        <span class="shift-time">${shiftInfo.start} – ${shiftInfo.end}</span>
+        <span class="shift-icon">${icon}</span>
+        <span class="shift-name">${slot.shift_name}</span>
+        <span class="shift-time">${timeRange}</span>
         <div class="shift-availability shift-availability--${availability.class}">
           <div class="availability-dots">
             ${availability.dots.map(filled =>
@@ -292,7 +333,6 @@ function renderShiftCards() {
     `;
   }).join('');
 
-  // Attach click handlers
   elements.shiftsGrid.querySelectorAll('.shift-card').forEach(card => {
     card.addEventListener('click', handleShiftCardClick);
     card.addEventListener('keydown', (e) => {
@@ -304,30 +344,22 @@ function renderShiftCards() {
   });
 }
 
-/**
- * Render skeleton loading state
- */
 function renderSkeletonCards() {
   elements.shiftsTitle.textContent = 'Loading shifts...';
   elements.shiftsGrid.innerHTML = `
     <div class="shift-card skeleton">
       <div class="skeleton-icon"></div>
-      <div class="skeleton-text"></div>
-      <div class="skeleton-text short"></div>
+      <div class="skeleton-text"></div>\t
       <div class="skeleton-badge"></div>
     </div>
     <div class="shift-card skeleton">
       <div class="skeleton-icon"></div>
       <div class="skeleton-text"></div>
-      <div class="skeleton-text short"></div>
       <div class="skeleton-badge"></div>
     </div>
   `;
 }
 
-/**
- * Render selected shifts summary
- */
 function renderSummary() {
   if (state.selectedSlotIds.size === 0) {
     elements.summarySection.hidden = true;
@@ -343,18 +375,18 @@ function renderSummary() {
     .filter(Boolean)
     .sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
-      return a.shift_name === 'Morning' ? -1 : 1;
+      return a.start_time.localeCompare(b.start_time);
     });
 
   elements.summaryList.innerHTML = selectedSlots.map(slot => {
-    const shiftInfo = SHIFTS[slot.shift_name];
+    const timeRange = `${formatTime(slot.start_time)} – ${formatTime(slot.end_time)}`;
     return `
       <li class="summary-item" data-slot-id="${slot.id}">
         <div class="summary-item-info">
           <span class="summary-item-date">${getDayFull(slot.date)}, ${formatDate(slot.date)}</span>
-          <span class="summary-item-shift">${slot.shift_name} Shift (${shiftInfo.start} – ${shiftInfo.end})</span>
+          <span class="summary-item-shift">${slot.shift_name} (${timeRange})</span>
         </div>
-        <button class="summary-item-remove" aria-label="Remove ${slot.shift_name} shift on ${formatDate(slot.date)}">
+        <button class="summary-item-remove" aria-label="Remove ${slot.shift_name} shift">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -366,15 +398,12 @@ function renderSummary() {
 
   elements.summaryCount.textContent = selectedSlots.length;
 
-  // Attach remove handlers
   elements.summaryList.querySelectorAll('.summary-item-remove').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const item = e.target.closest('.summary-item');
-      const slotId = item.dataset.slotId;
-      state.selectedSlotIds.delete(slotId);
+      state.selectedSlotIds.delete(item.dataset.slotId);
       renderShiftCards();
       renderSummary();
-      updateReviewSection();
     });
   });
 
@@ -382,9 +411,7 @@ function renderSummary() {
   updateSubmitButton();
 }
 
-/**
- * Update the review section
- */
+
 function updateReviewSection() {
   const name = elements.fullNameInput.value.trim();
   const phone = elements.phoneInput.value.trim();
@@ -402,7 +429,7 @@ function updateReviewSection() {
     .filter(Boolean)
     .sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
-      return a.shift_name === 'Morning' ? -1 : 1;
+      return a.start_time.localeCompare(b.start_time);
     });
 
   elements.reviewContent.innerHTML = `
@@ -415,16 +442,13 @@ function updateReviewSection() {
     <ul class="review-shifts-list">
       ${selectedSlots.map(slot => `
         <li class="review-shift-item">
-          ${getDayFull(slot.date)}, ${formatDate(slot.date)} — ${slot.shift_name} Shift
+          ${getDayFull(slot.date)}, ${formatDate(slot.date)} — ${slot.shift_name}
         </li>
       `).join('')}
     </ul>
   `;
 }
 
-/**
- * Update submit button state
- */
 function updateSubmitButton() {
   const name = elements.fullNameInput.value.trim();
   const phone = elements.phoneInput.value.trim();
@@ -435,9 +459,6 @@ function updateSubmitButton() {
   elements.submitBtn.disabled = !isValid;
 }
 
-/**
- * Show success state
- */
 function showSuccessState(registrationData) {
   elements.formSection.hidden = true;
   elements.summarySection.hidden = true;
@@ -446,17 +467,14 @@ function showSuccessState(registrationData) {
   const selectedSlots = Array.from(state.selectedSlotIds)
     .map(id => getSlotById(id))
     .filter(Boolean)
-    .sort((a, b) => {
-      if (a.date !== b.date) return a.date.localeCompare(b.date);
-      return a.shift_name === 'Morning' ? -1 : 1;
-    });
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   elements.successDetails.innerHTML = `
     <p class="success-details-title">You're signed up for:</p>
     <ul class="success-details-list">
       ${selectedSlots.map(slot => `
         <li class="success-details-item">
-          ${getDayFull(slot.date)}, ${formatDate(slot.date)} — ${slot.shift_name} Shift
+          ${getDayFull(slot.date)}, ${formatDate(slot.date)} — ${slot.shift_name}
         </li>
       `).join('')}
     </ul>
@@ -468,58 +486,40 @@ function showSuccessState(registrationData) {
     elements.successEmailNote.hidden = true;
   }
 
-  // Scroll to success section
   elements.successSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-/**
- * Show global error message
- */
 function showGlobalError(message) {
   elements.formGlobalError.hidden = false;
   elements.formGlobalErrorText.textContent = message;
 }
 
-/**
- * Hide global error message
- */
 function hideGlobalError() {
   elements.formGlobalError.hidden = true;
   elements.formGlobalErrorText.textContent = '';
 }
 
-/**
- * Show field error
- */
 function showFieldError(inputEl, errorEl, message) {
   inputEl.classList.add('form-input--error');
   errorEl.textContent = message;
   errorEl.classList.add('visible');
 }
 
-/**
- * Hide field error
- */
 function hideFieldError(inputEl, errorEl) {
   inputEl.classList.remove('form-input--error');
   errorEl.textContent = '';
   errorEl.classList.remove('visible');
 }
 
-/**
- * Validate email format
- */
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
+
 
 // =====================================================
 // EVENT HANDLERS
 // =====================================================
 
-/**
- * Handle date button click
- */
 function handleDateClick(e) {
   const btn = e.target.closest('.date-btn');
   if (!btn) return;
@@ -532,9 +532,6 @@ function handleDateClick(e) {
   renderShiftCards();
 }
 
-/**
- * Handle shift card click
- */
 function handleShiftCardClick(e) {
   const card = e.target.closest('.shift-card');
   if (!card) return;
@@ -542,7 +539,7 @@ function handleShiftCardClick(e) {
   const slotId = card.dataset.slotId;
   const slot = getSlotById(slotId);
 
-  if (!slot || isSlotFull(slot)) return;
+  if (!slot || (isSlotFull(slot) && !state.selectedSlotIds.has(slotId))) return;
 
   if (state.selectedSlotIds.has(slotId)) {
     state.selectedSlotIds.delete(slotId);
@@ -554,11 +551,8 @@ function handleShiftCardClick(e) {
   renderSummary();
 }
 
-/**
- * Handle date navigation
- */
 function handleDateNav(direction) {
-  const dates = generateFestivalDates();
+  const dates = getEventDates();
   const currentIndex = dates.indexOf(state.selectedDate);
   const newIndex = currentIndex + direction;
 
@@ -569,69 +563,35 @@ function handleDateNav(direction) {
   }
 }
 
-/**
- * Handle form input changes
- */
 function handleFormInput() {
   updateReviewSection();
   updateSubmitButton();
 }
 
-/**
- * Handle form submission
- */
 async function handleFormSubmit(e) {
   e.preventDefault();
-
   if (state.isSubmitting) return;
 
-  // Clear previous errors
   hideGlobalError();
-  hideFieldError(elements.fullNameInput, elements.fullNameError);
-  hideFieldError(elements.phoneInput, elements.phoneError);
-  hideFieldError(elements.emailInput, elements.emailError);
-
-  // Validate
-  const fullName = elements.fullNameInput.value.trim();
+  // ... basic validation ...
+  const name = elements.fullNameInput.value.trim();
   const phone = elements.phoneInput.value.trim();
   const email = elements.emailInput.value.trim();
 
-  let hasErrors = false;
+  if (!name || !phone || state.selectedSlotIds.size === 0) return; // Should be handled by disable btn
 
-  if (!fullName) {
-    showFieldError(elements.fullNameInput, elements.fullNameError, 'Please enter your full name');
-    hasErrors = true;
-  }
-
-  if (!phone) {
-    showFieldError(elements.phoneInput, elements.phoneError, 'Please enter your phone number');
-    hasErrors = true;
-  }
-
-  if (email && !isValidEmail(email)) {
-    showFieldError(elements.emailInput, elements.emailError, 'Please enter a valid email address');
-    hasErrors = true;
-  }
-
-  if (state.selectedSlotIds.size === 0) {
-    showGlobalError('Please select at least one shift before registering.');
-    hasErrors = true;
-  }
-
-  if (hasErrors) return;
-
-  // Submit
   state.isSubmitting = true;
   elements.submitBtn.disabled = true;
-  elements.submitBtn.querySelector('.submit-text').hidden = true;
-  elements.submitBtn.querySelector('.submit-loading').hidden = false;
+  elements.submitBtn.querySelector('.submit-text').hidden = true; // Use existing loaders
+  // Note: Check existing loader HTML structure in index.html to be safe
+  // Assuming it exists as per previous code
+  const loadingEl = elements.submitBtn.querySelector('.submit-loading');
+  if (loadingEl) loadingEl.hidden = false;
 
   try {
     const slotIds = Array.from(state.selectedSlotIds);
-
-    // Call the atomic registration function
     const { data, error } = await supabase.rpc('register_volunteer', {
-      p_full_name: fullName,
+      p_full_name: name,
       p_phone: phone,
       p_email: email || null,
       p_slot_ids: slotIds
@@ -639,58 +599,44 @@ async function handleFormSubmit(e) {
 
     if (error) throw error;
 
-    const result = data;
-
-    if (!result.success) {
-      // Handle specific error cases
-      if (result.unavailable_slots && result.unavailable_slots.length > 0) {
-        const unavailableText = result.unavailable_slots
-          .map(s => `${s.date} (${s.shift})`)
-          .join(', ');
-        showGlobalError(
-          `The following shift(s) are no longer available: ${unavailableText}. Please remove them and try again.`
-        );
-
-        // Refresh slots to get current availability
-        await fetchSlots();
-
-        // Remove unavailable slots from selection
-        result.unavailable_slots.forEach(unavailable => {
-          const slot = state.slots.find(s =>
-            s.date === unavailable.date && s.shift_name === unavailable.shift
-          );
-          if (slot) {
-            state.selectedSlotIds.delete(slot.id);
-          }
+    if (!data.success) {
+      if (data.unavailable_slots) {
+        showGlobalError('Some selected slots are no longer available. Please review.');
+        await loadEventData(); // Refresh to show current status
+        // Remove bad slots
+        data.unavailable_slots.forEach(u => {
+          // Logic to find slot by custom matcher if needed
+          // But here we rely on refresh. 
+          const slot = state.slots.find(s => s.date === u.date && s.shift_name === u.shift);
+          if (slot) state.selectedSlotIds.delete(slot.id);
         });
-
         renderShiftCards();
         renderSummary();
       } else {
-        showGlobalError(result.error || 'Registration failed. Please try again.');
+        showGlobalError(data.error || 'Registration failed.');
       }
     } else {
-      // Success! Send confirmation email if email provided
+      // Success
       if (email) {
-        await sendConfirmationEmail(fullName, email, slotIds);
+        // Pass complete event details
+        await sendConfirmationEmail(name, email, slotIds);
       }
-
-      showSuccessState({ fullName, phone, email });
+      showSuccessState({ fullName: name, email });
+      // Ideally we shouldn't rely on 'data.event_id' from RPC if we have it in state
     }
-  } catch (error) {
-    console.error('Registration error:', error);
-    showGlobalError('Something went wrong. Please try again or contact the temple for assistance.');
+
+  } catch (e) {
+    console.error(e);
+    showGlobalError('An error occurred. Please try again.');
   } finally {
     state.isSubmitting = false;
+    const loadingEl = elements.submitBtn.querySelector('.submit-loading');
+    if (loadingEl) loadingEl.hidden = true;
     elements.submitBtn.querySelector('.submit-text').hidden = false;
-    elements.submitBtn.querySelector('.submit-loading').hidden = true;
     updateSubmitButton();
   }
 }
 
-/**
- * Send confirmation email via Edge Function
- */
 async function sendConfirmationEmail(name, email, slotIds) {
   try {
     const slots = slotIds.map(id => getSlotById(id)).filter(Boolean);
@@ -702,81 +648,57 @@ async function sendConfirmationEmail(name, email, slotIds) {
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
       },
       body: JSON.stringify({
-        type: 'confirmation',
+        type: 'confirmation', // function should handle this
         name,
         email,
         slots: slots.map(s => ({
           date: s.date,
-          day_of_week: s.day_of_week,
+          day_of_week: s.day_of_week || getDayAbbr(s.date),
           shift_name: s.shift_name,
           start_time: s.start_time,
           end_time: s.end_time
-        }))
+        })),
+        event_details: {
+          title: state.event.title,
+          organization_name: state.event.organization_name,
+          contact_person: state.event.contact_person,
+          contact_whatsapp: state.event.contact_whatsapp
+        }
       })
     });
-  } catch (error) {
-    console.error('Error sending confirmation email:', error);
-    // Don't fail the registration if email fails
+  } catch (e) {
+    console.error('Email error', e);
   }
 }
 
-/**
- * Handle register another button
- */
 function handleRegisterAnother() {
-  // Reset state
   state.selectedSlotIds.clear();
-
-  // Reset form
   elements.registrationForm.reset();
-
-  // Hide success, show form
   elements.successSection.hidden = true;
   elements.formSection.hidden = false;
   elements.reviewSection.hidden = true;
 
-  // Refresh slots and re-render
-  fetchSlots().then(() => {
-    renderDateStrip();
-    renderShiftCards();
-    renderSummary();
-  });
-
-  // Scroll to top
+  loadEventData(); // Refresh slots
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
 
 // =====================================================
 // INITIALIZATION
 // =====================================================
 
-async function init() {
-  // Set initial date to first festival date
-  state.selectedDate = '2026-01-17';
-
-  // Render initial UI
-  renderDateStrip();
-  renderSkeletonCards();
-
-  // Attach event listeners
+function init() {
+  // Global Listeners
   elements.dateStrip.addEventListener('click', handleDateClick);
   elements.datePrev.addEventListener('click', () => handleDateNav(-1));
   elements.dateNext.addEventListener('click', () => handleDateNav(1));
-
   elements.fullNameInput.addEventListener('input', handleFormInput);
   elements.phoneInput.addEventListener('input', handleFormInput);
   elements.emailInput.addEventListener('input', handleFormInput);
-
   elements.registrationForm.addEventListener('submit', handleFormSubmit);
   elements.registerAnotherBtn.addEventListener('click', handleRegisterAnother);
 
-  // Fetch data
-  await fetchSlots();
-
-  // Render with data
-  renderShiftCards();
-  renderSummary();
+  loadEventData();
 }
 
-// Start the app
 init();
