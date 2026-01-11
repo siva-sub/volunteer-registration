@@ -851,17 +851,17 @@ function addShiftRowWithData(shiftList, data = {}) {
             <input type="time" class="shift-input shift-start" value="${data.start || '09:00'}" style="flex: 1.5;">
             <input type="time" class="shift-input shift-end" value="${data.end || '12:00'}" style="flex: 1.5;">
             <input type="number" class="shift-input shift-capacity" value="${data.capacity || 10}" min="1" style="flex: 1;">
-            <button type="button" class="action-btn action-btn--sm" title="Toggle Sales" onclick="toggleSalesSection(this)" style="padding: 2px 6px; opacity: ${hasSales ? '1' : '0.5'}; flex-shrink: 0;">💰</button>
+            <button type="button" class="action-btn action-btn--sm sales-config-btn" title="Toggle Sales Config" onclick="toggleSalesSection(this)" style="background: ${hasSales ? 'var(--color-success-light)' : 'var(--color-surface)'}; border-color: ${hasSales ? 'var(--color-success)' : 'var(--color-border)'}; color: ${hasSales ? 'var(--color-success)' : 'var(--color-text)'}; flex-shrink: 0;">💲 Sales</button>
             <button type="button" class="remove-btn" title="Remove Shift" style="flex-shrink: 0;">×</button>
         </div>
         
         <!-- Sales Config Section -->
-        <div class="sales-config-container" ${hasSales ? '' : 'hidden'} style="width: 100%; margin-top: 8px; padding: 8px; background: var(--color-background); border-radius: 4px; border: 1px dashed var(--color-border);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <label class="checkbox-label" style="font-size: 0.75rem;">
-                    <input type="checkbox" class="shift-sales-toggle" ${hasSales ? 'checked' : ''}> Enable Sales
+        <div class="sales-config-container" ${hasSales ? '' : 'hidden'} style="width: 100%; margin-top: 8px; padding: 12px; background: var(--color-background); border-radius: 8px; border: 1px dashed var(--color-border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label class="checkbox-label" style="font-size: 0.9rem; font-weight: 500;">
+                    <input type="checkbox" class="shift-sales-toggle" ${hasSales ? 'checked' : ''} style="transform: scale(1.2); margin-right: 8px;"> Enable Sales
                 </label>
-                <button type="button" class="action-btn action-btn--secondary action-btn--sm" style="font-size: 0.7rem; padding: 2px 5px;" onclick="addSalesItemRow(this)">+ Item</button>
+                <button type="button" class="action-btn action-btn--secondary" style="font-size: 0.85rem; padding: 4px 10px;" onclick="addSalesItemRow(this)">+ Add Item</button>
             </div>
             <div class="sales-items-list">
                 ${hasSales ? salesConfig.items.map(item => `

@@ -1254,30 +1254,46 @@
 .shift-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--space-4);
 }
 
 .shift-row {
     display: grid;
     grid-template-columns: 2fr 1.5fr 1.5fr 1fr 40px;
-    gap: var(--space-2);
+    gap: var(--space-3);
     align-items: center;
     background: var(--color-surface-alt);
-    padding: var(--space-2);
+    padding: var(--space-3);
     border-radius: var(--radius-md);
 }
 
 .shift-input {
-    padding: 6px;
-    font-size: var(--font-size-sm);
+    padding: 10px 12px;
+    /* Increased padding */
+    font-size: var(--font-size-base);
+    /* Increased font size */
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     width: 100%;
+    min-height: 42px;
+    /* Ensure clickable area */
 }
 
 .shift-input:focus {
     border-color: var(--color-primary);
     outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+/* Sales Button specific style */
+.sales-config-btn {
+    font-size: 0.9rem;
+    padding: 6px 12px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
 }
 
 .remove-btn {
@@ -1288,10 +1304,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: var(--radius-sm);
     transition: all 0.2s;
+    font-size: 1.5rem;
 }
 
 .remove-btn:hover {
