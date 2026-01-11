@@ -1332,31 +1332,41 @@ function renderOverview() {
             return `
                 <div class="overview-shift">
                     <div class="overview-shift-header">
-                        <span class="overview-shift-name">${slot.shift_name}</span>
-                        ${slot.station ? `<span class="status-badge status-badge--flagged">${slot.station}</span>` : ''}
-                        <button class="icon-btn-small" onclick="window.openAddVolunteerModal('${slot.id}')" title="Manual Add Volunteer">➕</button>
+                        <div class="shift-info-group">
+                            <span class="overview-shift-name">${slot.shift_name}</span>
+                            ${slot.station ? `<span class="status-badge status-badge--flagged">${slot.station}</span>` : ''}
+                        </div>
+                        <button class="action-btn action-btn--sm action-btn--secondary" onclick="window.openAddVolunteerModal('${slot.id}')" title="Manual Add Volunteer">
+                            + Add Vol
+                        </button>
                     </div>
-                    <div class="overview-shift-time">
-                        ${formatTime(slot.start_time)} - ${formatTime(slot.end_time)}
+                    
+                    <div class="overview-shift-meta">
+                        <div class="overview-shift-time">
+                            🕒 ${formatTime(slot.start_time)} - ${formatTime(slot.end_time)}
+                        </div>
+                        <span class="overview-shift-count overview-shift-count--${countClass}">
+                            ${slot.registered_count}/${slot.capacity} Verified
+                        </span>
                     </div>
-                    <span class="overview-shift-count overview-shift-count--${countClass}">
-                        ${slot.registered_count}/${slot.capacity}
-                    </span>
-                 
+
                     ${volunteers.length > 0 ? `
-                        <div class="overview-volunteers">
+                        <div class="overview-volunteers-list">
                             ${volunteers.map(v => `
-                                <div class="overview-volunteer">
-                                    <span class="volunteer-name">• ${v.full_name}</span>
-                                    <span class="leader-toggle ${v.isLeader ? 'active' : ''}" 
-                                          title="${v.isLeader ? 'Remove Leader' : 'Make Shift Leader'}"
-                                          onclick="window.toggleShiftLeader('${v.id}', '${slot.id}')">
-                                        ${v.isLeader ? '👑' : '☆'}
-                                    </span>
+                                <div class="overview-volunteer-item">
+                                    <div class="volunteer-info">
+                                        <span class="volunteer-name">${v.full_name}</span>
+                                        ${v.phone ? `<span class="volunteer-phone">${v.phone}</span>` : ''}
+                                    </div>
+                                    <button class="leader-toggle-btn ${v.isLeader ? 'active' : ''}" 
+                                            title="${v.isLeader ? 'Remove Shift Leader' : 'Make Shift Leader'}"
+                                            onclick="window.toggleShiftLeader('${v.id}', '${slot.id}')">
+                                        ${v.isLeader ? '👑 Leader' : '☆ Make Leader'}
+                                    </button>
                                 </div>
                             `).join('')}
                         </div>
-                    ` : ''}
+                    ` : '<div class="overview-no-volunteers">No volunteers yet</div>'}
                 </div>
             `;
         }).join('');
