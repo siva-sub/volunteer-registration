@@ -798,8 +798,25 @@ window.addSalesItemRow = function (btn) {
     itemRow.style.cssText = "display: flex; gap: 4px; margin-bottom: 4px;";
     itemRow.innerHTML = `
         <input type="text" class="form-input form-input--sm sales-item-name" placeholder="Item Name" style="flex: 2;">
-        <input type="number" class="form-input form-input--sm sales-item-price" placeholder="Price" step="0.1" style="flex: 1;">
+        <input type="number" class="form-input form-input--sm sales-item-price" placeholder="Unit Price $" step="0.1" style="flex: 1;">
         <button type="button" class="remove-btn" onclick="this.parentElement.remove()">×</button>
+    `;
+    list.appendChild(itemRow);
+};
+
+// Station-level sales item function (uses unit_price field name for report.js compatibility)
+window.addStationSalesItem = function (btn) {
+    const list = btn.closest('.station-sales-items').querySelector('.station-items-list');
+    const itemRow = document.createElement('div');
+    itemRow.className = 'station-item-row';
+    itemRow.style.cssText = "display: flex; gap: 8px; margin-bottom: 6px; align-items: center;";
+    itemRow.innerHTML = `
+        <input type="text" class="form-input form-input--sm station-item-name" placeholder="Item name (e.g. Towel)" style="flex: 2;">
+        <div style="display: flex; align-items: center; gap: 2px; flex: 1;">
+            <span style="font-size: 0.9rem; color: var(--color-text-muted);">$</span>
+            <input type="number" class="form-input form-input--sm station-item-price" placeholder="0.00" step="0.1" min="0" style="flex: 1;">
+        </div>
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()" style="font-size: 1.2rem; color: #dc2626;">×</button>
     `;
     list.appendChild(itemRow);
 };
@@ -2220,7 +2237,7 @@ function addStationWithShifts(stationName, shifts) {
         <div class="station-sales-items" hidden>
             <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2);">
                 <span style="font-size: 0.8rem; font-weight: 500;">Sales Items:</span>
-                <button type="button" class="action-btn action-btn--secondary action-btn--sm add-station-item-btn" style="font-size: 0.75rem; padding: 4px 8px;">+ Add Item</button>
+                <button type="button" class="action-btn action-btn--secondary action-btn--sm" style="font-size: 0.75rem; padding: 4px 8px;" onclick="addStationSalesItem(this)">+ Add Item</button>
             </div>
             <div class="station-items-list"></div>
         </div>
