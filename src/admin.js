@@ -2003,15 +2003,15 @@ function init() {
     const closeAddVol = document.getElementById('closeAddVolunteerModal');
     if (closeAddVol) closeAddVol.addEventListener('click', window.closeAddVolunteerModal);
     elements.createEventBtn.addEventListener('click', openCreateEventModal);
-    elements.backToEventsBtn.addEventListener('click', showEventsList);
-    elements.refreshBtn.addEventListener('click', handleRefresh);
-    elements.copyLinkBtn.addEventListener('click', copyEventLink);
-    elements.dateFilter.addEventListener('change', (e) => {
+    if (elements.backToEventsBtn) elements.backToEventsBtn.addEventListener('click', showEventsList);
+    if (elements.refreshBtn) elements.refreshBtn.addEventListener('click', handleRefresh);
+    if (elements.copyLinkBtn) elements.copyLinkBtn.addEventListener('click', copyEventLink);
+    if (elements.dateFilter) elements.dateFilter.addEventListener('change', (e) => {
         state.selectedDateFilter = e.target.value;
         renderTable();
     });
-    elements.exportBtn.addEventListener('click', exportToCSV);
-    elements.sendRemindersBtn.addEventListener('click', sendReminders);
+    if (elements.exportBtn) elements.exportBtn.addEventListener('click', exportToCSV);
+    if (elements.sendRemindersBtn) elements.sendRemindersBtn.addEventListener('click', sendReminders);
 
     // Reports & Feedback
     if (elements.refreshReportsBtn) elements.refreshReportsBtn.addEventListener('click', loadReports);
@@ -2031,6 +2031,8 @@ function init() {
     // Template change listener
     elements.eventTemplate.addEventListener('change', (e) => {
         const templateId = e.target.value;
+        console.log('[Template Debug] Selected templateId:', templateId);
+        console.log('[Template Debug] state.templates:', state.templates);
 
         if (!templateId) {
             elements.templatePreview.hidden = true;
@@ -2038,7 +2040,12 @@ function init() {
         }
 
         const template = state.templates.find(t => t.id === templateId);
-        if (!template) return;
+        console.log('[Template Debug] Found template:', template);
+
+        if (!template) {
+            console.warn('[Template Debug] Template not found in state.templates!');
+            return;
+        }
 
         // Show Preview
         elements.templatePreview.hidden = false;
