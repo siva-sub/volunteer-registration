@@ -32,7 +32,8 @@ interface EmailRequest {
   email: string;
   slots: Slot[];
   event_details?: EventDetails;
-  cancel_token?: string; // For self-service cancellation link
+  cancel_token?: string;
+  checkin_token?: string; // For check-in and sales report link
 }
 
 function formatTime(timeStr: string): string {
@@ -56,13 +57,15 @@ function sanitizeWhatsApp(number: string): string {
   return number.replace(/\D/g, '');
 }
 
-function generateConfirmationEmail(name: string, slots: Slot[], event: EventDetails, cancelToken?: string): string {
+function generateConfirmationEmail(name: string, slots: Slot[], event: EventDetails, cancelToken?: string, checkinToken?: string): string {
   const orgName = event.organization_name || 'Volunteer Organization';
   const eventTitle = event.title || 'Volunteer Event';
   const contactName = event.contact_person || 'the organizer';
   const contactWa = event.contact_whatsapp ? sanitizeWhatsApp(event.contact_whatsapp) : '';
   const contactLink = contactWa ? `https://wa.me/${contactWa}` : '#';
   const cancelLink = cancelToken ? `https://siva-sub.github.io/volunteer-registration/cancel.html?token=${cancelToken}` : '';
+  const checkinLink = checkinToken ? `https://siva-sub.github.io/volunteer-registration/checkin.html?token=${checkinToken}` : '';
+  const reportLink = checkinToken ? `https://siva-sub.github.io/volunteer-registration/report.html?token=${checkinToken}` : '';
 
   const shiftsHtml = slots.map(slot => `
     <tr>
@@ -134,6 +137,16 @@ function generateConfirmationEmail(name: string, slots: Slot[], event: EventDeta
             <p style="color: #E65100; font-size: 14px; margin: 0;">
               <strong>Need to cancel?</strong><br>
               <a href="${cancelLink}" style="color: #E65100; font-weight: 600;">Click here to manage your registration</a>
+            </p>
+          </div>
+          ` : ''}
+          
+          ${checkinLink ? `
+          <div style="background: #E3F2FD; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+            <p style="color: #1565C0; font-size: 14px; margin: 0;">
+              <strong>📋 On the day of your shift:</strong><br>
+              <a href="${checkinLink}" style="color: #1565C0; font-weight: 600;">Check-in here</a>
+              ${reportLink ? ` | <a href="${reportLink}" style="color: #1565C0; font-weight: 600;">Submit sales report</a>` : ''}
             </p>
           </div>
           ` : ''}
@@ -240,7 +253,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, name, email, slots, event_details, cancel_token }: EmailRequest = await req.json();
+    const { type, name, email, slots, event_details, cancel_token, checkin_token }: EmailRequest = await req.json();
 
     if (!email || !name || !slots || slots.length === 0) {
       return new Response(
@@ -263,7 +276,7 @@ serve(async (req) => {
       : `Reminder: Your Shift for ${event.title} is Tomorrow`;
 
     const html = type === 'confirmation'
-      ? generateConfirmationEmail(name, slots, event, cancel_token)
+      ? generateConfirmationEmail(name, slots, event, cancel_token, checkin_token)
       : generateReminderEmail(name, slots, event);
 
     // Send via Resend API
