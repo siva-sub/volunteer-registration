@@ -570,14 +570,14 @@ async function handleCreateEventSubmit(e) {
                 p_contact_person: person,
                 p_contact_whatsapp: whatsapp,
                 p_active: true,
-                p_feedback_enabled: elements.feedbackEnabled.checked,
-                p_certificates_enabled: elements.certificatesEnabled.checked,
-                p_paused: elements.eventPaused.checked,
-                p_waitlist_enabled: elements.waitlistEnabled.checked,
-                p_checkin_required: elements.checkinRequired.checked,
-                p_coordinator_email: elements.coordinatorEmail.value || null,
-                p_checkin_open_offset_minutes: parseInt(elements.checkinOpenOffset.value),
-                p_checkin_close_offset_minutes: parseInt(elements.checkinCloseOffset.value),
+                p_feedback_enabled: elements.feedbackEnabled?.checked || false,
+                p_certificates_enabled: elements.certificatesEnabled?.checked || false,
+                p_paused: elements.eventPaused?.checked || false,
+                p_waitlist_enabled: elements.waitlistEnabled?.checked || false,
+                p_checkin_required: elements.checkinRequired?.checked || false,
+                p_coordinator_email: elements.coordinatorEmail?.value || null,
+                p_checkin_open_offset_minutes: parseInt(elements.checkinOpenOffset?.value) || 60,
+                p_checkin_close_offset_minutes: parseInt(elements.checkinCloseOffset?.value) || 30,
                 p_registration_mode: document.querySelector('input[name="registrationMode"]:checked')?.value || 'instant',
                 p_waitlist_mode: document.querySelector('input[name="waitlistMode"]:checked')?.value || 'manual',
                 p_advanced_reporting_enabled: document.getElementById('advancedReportingEnabled')?.checked || false
@@ -603,14 +603,14 @@ async function handleCreateEventSubmit(e) {
                     contact_whatsapp: whatsapp,
                     dates_config: datesConfig,
                     active: true,
-                    feedback_enabled: elements.feedbackEnabled.checked,
-                    certificates_enabled: elements.certificatesEnabled.checked,
-                    checkin_required: elements.checkinRequired.checked,
-                    waitlist_enabled: elements.waitlistEnabled.checked,
-                    paused: elements.eventPaused.checked,
-                    coordinator_email: elements.coordinatorEmail.value || null,
-                    checkin_open_offset_minutes: parseInt(elements.checkinOpenOffset.value),
-                    checkin_close_offset_minutes: parseInt(elements.checkinCloseOffset.value),
+                    feedback_enabled: elements.feedbackEnabled?.checked || false,
+                    certificates_enabled: elements.certificatesEnabled?.checked || false,
+                    checkin_required: elements.checkinRequired?.checked || false,
+                    waitlist_enabled: elements.waitlistEnabled?.checked || false,
+                    paused: elements.eventPaused?.checked || false,
+                    coordinator_email: elements.coordinatorEmail?.value || null,
+                    checkin_open_offset_minutes: parseInt(elements.checkinOpenOffset?.value) || 60,
+                    checkin_close_offset_minutes: parseInt(elements.checkinCloseOffset?.value) || 30,
                     registration_mode: document.querySelector('input[name="registrationMode"]:checked')?.value || 'instant',
                     waitlist_mode: document.querySelector('input[name="waitlistMode"]:checked')?.value || 'manual',
                     advanced_reporting_enabled: document.getElementById('advancedReportingEnabled')?.checked || false
@@ -621,13 +621,13 @@ async function handleCreateEventSubmit(e) {
             if (eventError) throw eventError;
 
             // Auto-create default feedback questions if enabled
-            const feedbackEnabled = elements.feedbackEnabled.checked;
+            const feedbackEnabled = elements.feedbackEnabled?.checked || false;
             if (feedbackEnabled) {
                 await supabase.rpc('create_default_feedback_questions', { p_event_id: eventData.id });
             }
 
             // 2. Generate Slots for this event
-            const isCustomMode = elements.modeCustomBtn.classList.contains('active');
+            const isCustomMode = elements.modeCustomBtn?.classList?.contains('active') ?? true;
 
             if (isCustomMode) {
                 // Parse Custom Schedule Builder
@@ -2085,11 +2085,11 @@ function init() {
 
         // Auto-fill settings
         const settings = template.default_settings || {};
-        if (settings.feedback_enabled !== undefined) elements.feedbackEnabled.checked = settings.feedback_enabled;
-        if (settings.certificates_enabled !== undefined) elements.certificatesEnabled.checked = settings.certificates_enabled;
-        if (settings.checkin_required !== undefined) elements.checkinRequired.checked = settings.checkin_required;
-        if (settings.paused !== undefined) elements.eventPaused.checked = settings.paused;
-        if (settings.waitlist_enabled !== undefined) elements.waitlistEnabled.checked = settings.waitlist_enabled;
+        if (settings.feedback_enabled !== undefined && elements.feedbackEnabled) elements.feedbackEnabled.checked = settings.feedback_enabled;
+        if (settings.certificates_enabled !== undefined && elements.certificatesEnabled) elements.certificatesEnabled.checked = settings.certificates_enabled;
+        if (settings.checkin_required !== undefined && elements.checkinRequired) elements.checkinRequired.checked = settings.checkin_required;
+        if (settings.paused !== undefined && elements.eventPaused) elements.eventPaused.checked = settings.paused;
+        if (settings.waitlist_enabled !== undefined && elements.waitlistEnabled) elements.waitlistEnabled.checked = settings.waitlist_enabled;
     });
 
     // Edit Modal
