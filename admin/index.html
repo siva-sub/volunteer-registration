@@ -652,23 +652,22 @@
                                     When volunteers check in, they can submit feedback forms and sales reports.
                                     Configure the check-in window below.
                                 </span>
-                                <div style="display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap;">
-                                    <div style="display: flex; align-items: center; gap: var(--space-2);">
-                                        <input type="number" id="checkinOpenOffset" class="form-input"
-                                            style="width: 70px; padding: 4px 8px; font-size: 0.9rem; height: 32px;"
-                                            value="30">
-                                        <span style="font-size: 0.9rem; color: var(--color-text-muted);">min
-                                            before</span>
+                                <div class="checkin-input-wrapper"
+                                    style="display: flex; align-items: center; justify-content: center; gap: var(--space-3); background: var(--color-surface); padding: var(--space-3); border-radius: var(--radius-md); border: 1px solid var(--color-border);">
+                                    <div class="input-with-suffix">
+                                        <input type="number" id="checkinOpenOffset"
+                                            class="form-input form-input-compact" value="30">
+                                        <span class="input-suffix">min before</span>
                                     </div>
-                                    <span
-                                        style="color: var(--color-primary); font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Shift
-                                        Start</span>
-                                    <div style="display: flex; align-items: center; gap: var(--space-2);">
-                                        <input type="number" id="checkinCloseOffset" class="form-input"
-                                            style="width: 70px; padding: 4px 8px; font-size: 0.9rem; height: 32px;"
-                                            value="120">
-                                        <span style="font-size: 0.9rem; color: var(--color-text-muted);">min
-                                            after</span>
+                                    <div class="checkin-divider">
+                                        <span class="divider-line"></span>
+                                        <span class="divider-text">SHIFT START</span>
+                                        <span class="divider-line"></span>
+                                    </div>
+                                    <div class="input-with-suffix">
+                                        <input type="number" id="checkinCloseOffset"
+                                            class="form-input form-input-compact" value="120">
+                                        <span class="input-suffix">min after</span>
                                     </div>
                                 </div>
                             </div>
