@@ -1380,6 +1380,32 @@ function renderOverview() {
 // SLOTS MANAGEMENT
 // =====================================================
 
+// =====================================================
+// SLOTS MANAGEMENT
+// =====================================================
+
+async function loadSlots() {
+    try {
+        const { data, error } = await supabase
+            .from('shift_slots')
+            .select('*')
+            .eq('event_id', state.activeEventId)
+            .is('deleted_at', null)
+            .order('date', { ascending: true })
+            .order('start_time', { ascending: true });
+
+        if (error) throw error;
+        state.slots = data || [];
+        // Extract sales items from slots for report/edit usage if needed
+        // For now just keep them
+        console.log('DEBUG: Loaded slots:', state.slots.length);
+        renderSlots();
+    } catch (error) {
+        console.error('Error loading slots:', error);
+        alert('Failed to load slots.');
+    }
+}
+
 function renderSlots() {
     const uniqueDates = [...new Set(state.slots.map(s => s.date))].sort();
 

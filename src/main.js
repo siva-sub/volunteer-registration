@@ -778,14 +778,9 @@ async function sendConfirmationEmail(name, email, slotIds, cancelToken, checkinT
   try {
     const slots = slotIds.map(id => getSlotById(id)).filter(Boolean);
 
-    await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-      },
-      body: JSON.stringify({
-        type: 'confirmation', // function should handle this
+    const { data, error } = await supabase.functions.invoke('send-email', {
+      body: {
+        type: 'confirmation',
         name,
         email,
         cancel_token: cancelToken,
@@ -795,7 +790,7 @@ async function sendConfirmationEmail(name, email, slotIds, cancelToken, checkinT
           shift_name: s.shift_name,
           start_time: s.start_time,
           end_time: s.end_time,
-          checkin_open_at: s.checkin_open_at, // Pass the computed window
+          checkin_open_at: s.checkin_open_at,
           checkin_token: checkinTokens ? checkinTokens[idx] : null
         })),
         event_details: {
@@ -804,8 +799,12 @@ async function sendConfirmationEmail(name, email, slotIds, cancelToken, checkinT
           contact_person: state.event.contact_person,
           contact_whatsapp: state.event.contact_whatsapp
         }
-      })
+      }
     });
+
+    if (error) throw error;
+    console.log('Email sent:', data);
+
   } catch (e) {
     console.error('Email error', e);
   }
