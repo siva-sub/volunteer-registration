@@ -583,13 +583,32 @@
                                 </label>
 
                                 <label class="checkbox-item">
-                                    <input type="checkbox" id="advancedReportingEnabled">
-                                    <div class="checkbox-item-content">
-                                        <span class="checkbox-item-label">Advanced Sales Tracking</span>
-                                        <span class="checkbox-item-desc">Track cash collection, starting float, and
-                                            per-volunteer sales reporting</span>
+                                    <div
+                                        style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                        <div class="checkbox-item-content" style="flex-grow: 1;">
+                                            <span class="checkbox-item-label">Advanced Sales Tracking</span>
+                                            <span class="checkbox-item-desc">Track cash collection, starting float, and
+                                                per-volunteer sales reporting</span>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="advancedReportingEnabled"
+                                                onchange="toggleAdvancedSales(this.checked)">
+                                            <span class="toggle-slider"></span>
+                                        </label>
                                     </div>
                                 </label>
+                            </div>
+
+                            <!-- Sales Settings (Shown if Advanced Reporting Enabled) -->
+                            <div id="advancedSalesSettings" style="margin-left: 52px; margin-top: 12px; display: none;">
+                                <div class="form-group" style="max-width: 200px;">
+                                    <label for="defaultFloatAmount" class="form-label"
+                                        style="font-size: 0.9rem;">Default Float Amount ($)</label>
+                                    <input type="number" id="defaultFloatAmount" class="form-input" min="0" step="1"
+                                        value="0" placeholder="e.g. 50">
+                                    <p class="form-hint" style="font-size: 0.8rem;">Starting cash for each shift report.
+                                    </p>
+                                </div>
                             </div>
 
                             <div style="display: flex; gap: var(--space-4); margin-top: var(--space-4);">

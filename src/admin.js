@@ -426,7 +426,20 @@ async function openEditEventModal(eventId) {
     elements.checkinRequired.checked = event.checkin_required !== false;
     elements.coordinatorEmail.value = event.coordinator_email || '';
     elements.checkinOpenOffset.value = event.checkin_open_offset_minutes || 30;
+    elements.checkinOpenOffset.value = event.checkin_open_offset_minutes || 30;
     elements.checkinCloseOffset.value = event.checkin_close_offset_minutes || 120;
+
+    // Advanced Reporting
+    const advEnabled = event.advanced_reporting_enabled === true;
+    const advToggle = document.getElementById('advancedReportingEnabled');
+    if (advToggle) {
+        advToggle.checked = advEnabled;
+        toggleAdvancedSales(advEnabled);
+    }
+    const defFloatInput = document.getElementById('defaultFloatAmount');
+    if (defFloatInput) {
+        defFloatInput.value = event.default_float_amount || 0;
+    }
 
     // Advanced Settings
     const regMode = event.registration_mode || 'instant';
@@ -471,16 +484,18 @@ function renderQuestionEditor() {
                 <span class="section-header-text">Question ${i + 1}</span>
                 <button type="button" class="remove-btn" title="Remove Question" onclick="removeQuestion(${i})" ${state.eventQuestions.length === 1 ? 'disabled' : ''}>×</button>
             </div>
-            <div class="question-body" style="display: flex; flex-direction: column; gap: 8px;">
+            
+            <!-- Editor Inputs -->
+            <div class="question-body" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
                 <div class="question-input-main" style="width: 100%;">
-                    <input type="text" class="form-input q-text" value="${q.question_text}" placeholder="e.g., How was the crowd control?" required style="width: 100%;">
+                    <input type="text" class="form-input q-text" value="${q.question_text}" placeholder="Question text (e.g. How was the check-in?)" required style="width: 100%;">
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div class="question-input-type" style="flex: 1; margin-right: 12px;">
                         <select class="form-select q-type" style="width: 100%;">
-                            <option value="stars" ${q.question_type === 'stars' ? 'selected' : ''}>Star Rating (1-5)</option>
+                            <option value="stars" ${q.question_type === 'stars' ? 'selected' : ''}>Star Rating (★★★★★)</option>
                             <option value="rating" ${q.question_type === 'rating' ? 'selected' : ''}>Numeric Rating (1-10)</option>
-                            <option value="text" ${q.question_type === 'text' ? 'selected' : ''}>Text Response</option>
+                            <option value="text" ${q.question_type === 'text' ? 'selected' : ''}>Free Text Response</option>
                         </select>
                     </div>
                     <div class="question-options">
@@ -489,6 +504,18 @@ function renderQuestionEditor() {
                             <span>Required</span>
                         </label>
                     </div>
+                </div>
+            </div>
+
+            <!-- Live Preview -->
+            <div class="question-preview" style="background: var(--color-bg); padding: 10px; border-radius: 6px; border: 1px dashed var(--color-border);">
+                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase;">Preview</span>
+                <div style="margin-top: 6px;">
+                    <label style="display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; color: var(--color-text);">
+                        ${q.question_text || '<span style="color:var(--color-text-muted); font-style:italic;">Your question text...</span>'}
+                        ${q.is_required ? '<span style="color:red">*</span>' : ''}
+                    </label>
+                    ${renderPreviewInput(q.question_type)}
                 </div>
             </div>
         </div>
@@ -522,6 +549,25 @@ function addQuestion() {
         is_required: true
     });
     renderQuestionEditor();
+}
+
+// Helper to render preview input based on type
+function renderPreviewInput(type) {
+    if (type === 'stars') {
+        return `
+        <div style="display: flex; gap: 4px;">
+            ${[1, 2, 3, 4, 5].map(() => `<span style="font-size: 1.2rem; color: #ddd;">★</span>`).join('')}
+        </div>`;
+    } else if (type === 'rating') {
+        return `
+        <div style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px;">
+            ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `
+                <div style="min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--color-border); border-radius: 50%; font-size: 0.8rem; color: var(--color-text-muted); background: #fff;">${n}</div>
+            `).join('')}
+        </div>`;
+    } else {
+        return `<textarea class="form-textarea" rows="2" placeholder="User answer..." disabled style="width: 100%; background: #f9f9f9; resize: none;"></textarea>`;
+    }
 }
 
 async function saveEventQuestions(eventId) {
@@ -581,7 +627,8 @@ async function handleCreateEventSubmit(e) {
                 p_checkin_close_offset_minutes: parseInt(elements.checkinCloseOffset?.value) || 30,
                 p_registration_mode: document.querySelector('input[name="registrationMode"]:checked')?.value || 'instant',
                 p_waitlist_mode: document.querySelector('input[name="waitlistMode"]:checked')?.value || 'manual',
-                p_advanced_reporting_enabled: document.getElementById('advancedReportingEnabled')?.checked || false
+                p_advanced_reporting_enabled: document.getElementById('advancedReportingEnabled')?.checked || false,
+                p_default_float_amount: parseFloat(document.getElementById('defaultFloatAmount')?.value) || 0
             });
 
             if (error) throw error;
@@ -615,6 +662,7 @@ async function handleCreateEventSubmit(e) {
                     registration_mode: document.querySelector('input[name="registrationMode"]:checked')?.value || 'instant',
                     waitlist_mode: document.querySelector('input[name="waitlistMode"]:checked')?.value || 'manual',
                     advanced_reporting_enabled: document.getElementById('advancedReportingEnabled')?.checked || false,
+                    default_float_amount: parseFloat(document.getElementById('defaultFloatAmount')?.value) || 0,
                     is_hidden: elements.eventHidden?.checked || false
                 })
                 .select()
@@ -1410,6 +1458,13 @@ function renderSalesItemsList() {
 window.removeSalesItem = function (index) {
     state.slotSalesItems.splice(index, 1);
     renderSalesItemsList();
+};
+
+window.toggleAdvancedSales = function (enabled) {
+    const settingsDiv = document.getElementById('advancedSalesSettings');
+    if (settingsDiv) {
+        settingsDiv.style.display = enabled ? 'block' : 'none';
+    }
 };
 
 async function handleAddSlot(e) {
