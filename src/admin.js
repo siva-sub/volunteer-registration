@@ -197,6 +197,7 @@ const elements = {
     templateModeSection: document.getElementById('templateModeSection'),
     stationsContainer: document.getElementById('stationsContainer'),
     addStationBtn: document.getElementById('addStationBtn'),
+    customizeTemplateBtn: document.getElementById('customizeTemplateBtn'),
 };
 
 // =====================================================
@@ -443,40 +444,47 @@ function renderQuestionEditor() {
     if (!elements.questionsEditor) return;
 
     if (state.eventQuestions.length === 0) {
-        elements.questionsEditor.innerHTML = '<p class="empty-text">No custom feedback questions yet.</p>';
+        elements.questionsEditor.innerHTML = '<p class="empty-state-text">No custom feedback questions yet.</p>';
         return;
     }
 
     elements.questionsEditor.innerHTML = state.eventQuestions.map((q, i) => `
-        <div class="question-row" data-index="${i}">
-            <div class="question-main">
-                <input type="text" class="form-input q-text" value="${q.question_text}" placeholder="Question text" required>
-                <select class="form-input q-type">
-                    <option value="stars" ${q.question_type === 'stars' ? 'selected' : ''}>Stars (1-5)</option>
-                    <option value="rating" ${q.question_type === 'rating' ? 'selected' : ''}>Rating (1-10)</option>
-                    <option value="text" ${q.question_type === 'text' ? 'selected' : ''}>Long Text</option>
-                </select>
+        <div class="question-card" data-index="${i}">
+            <div class="question-header">
+                <span style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-muted);">Question ${i + 1}</span>
+                <button type="button" class="btn-remove-q" onclick="removeQuestion(${i})" title="Remove Question">×</button>
             </div>
-            <div class="question-meta">
-                <label class="checkbox-label">
-                    <input type="checkbox" class="q-required" ${q.is_required ? 'checked' : ''}>
-                    <span>Required</span>
-                </label>
-                <button type="button" class="action-btn action-btn--danger btn-remove-q" onclick="removeQuestion(${i})">×</button>
+            <div class="question-body">
+                <div class="question-input-main">
+                    <input type="text" class="form-input q-text" value="${q.question_text}" placeholder="e.g., How was the crowd control?" required>
+                </div>
+                <div class="question-input-type">
+                    <select class="form-select q-type">
+                        <option value="stars" ${q.question_type === 'stars' ? 'selected' : ''}>Star Rating (1-5)</option>
+                        <option value="rating" ${q.question_type === 'rating' ? 'selected' : ''}>Numeric Rating (1-10)</option>
+                        <option value="text" ${q.question_type === 'text' ? 'selected' : ''}>Text Response</option>
+                    </select>
+                </div>
+                <div class="question-options">
+                    <label class="checkbox-label" style="font-size: 0.85rem;">
+                        <input type="checkbox" class="q-required" ${q.is_required ? 'checked' : ''}>
+                        <span>Required</span>
+                    </label>
+                </div>
             </div>
         </div>
     `).join('');
 
     // Attach local listeners to inputs to update state
-    elements.questionsEditor.querySelectorAll('.question-row').forEach(row => {
-        const index = row.dataset.index;
-        row.querySelector('.q-text').addEventListener('input', (e) => {
+    elements.questionsEditor.querySelectorAll('.question-card').forEach(card => {
+        const index = card.dataset.index;
+        card.querySelector('.q-text').addEventListener('input', (e) => {
             state.eventQuestions[index].question_text = e.target.value;
         });
-        row.querySelector('.q-type').addEventListener('change', (e) => {
+        card.querySelector('.q-type').addEventListener('change', (e) => {
             state.eventQuestions[index].question_type = e.target.value;
         });
-        row.querySelector('.q-required').addEventListener('change', (e) => {
+        card.querySelector('.q-required').addEventListener('change', (e) => {
             state.eventQuestions[index].is_required = e.target.checked;
         });
     });
@@ -726,9 +734,88 @@ function initScheduleBuilder() {
         });
     }
 
+    // Customize Template
+    if (elements.customizeTemplateBtn) {
+        elements.customizeTemplateBtn.addEventListener('click', () => {
+            const templateId = elements.eventTemplate.value;
+            if (!templateId) return;
+
+            const template = state.templates.find(t => t.id === templateId);
+            if (!template) return;
+
+            // 1. Switch to Custom Mode
+            elements.modeCustomBtn.click();
+
+            // 2. Clear existing stations
+            elements.stationsContainer.innerHTML = '';
+
+            // 3. Parse Template Slots and Group by Station
+            const slotConfig = template.slot_config?.slots || [];
+            const stations = {};
+
+            // Group
+            slotConfig.forEach(slot => {
+                const stName = slot.station || 'General Volunteers';
+                if (!stations[stName]) stations[stName] = [];
+                stations[stName].push(slot);
+            });
+
+            // 4. Create Station Cards
+            Object.keys(stations).forEach(stName => {
+                addStationWithShifts(stName, stations[stName]);
+            });
+        });
+    }
+
     // Initial listeners for default station
     const defaultStation = elements.stationsContainer.querySelector('.station-card');
     if (defaultStation) attachStationListeners(defaultStation);
+}
+
+function addStationWithShifts(stationName, shifts) {
+    const clone = document.createElement('div');
+    clone.className = 'station-card';
+    clone.innerHTML = `
+        <div class="station-header">
+            <input type="text" class="station-title-input" value="${stationName === 'General Volunteers' ? '' : stationName}" placeholder="Station Name">
+            <div class="station-actions">
+                <button type="button" class="add-shift-btn action-btn action-btn--secondary action-btn--sm">+ Add Shift</button>
+                <button type="button" class="remove-station-btn action-btn action-btn--danger action-btn--sm">Remove Station</button>
+            </div>
+        </div>
+        <div class="shift-list">
+             <div class="shift-row" style="background: transparent; border: none; padding: 0;">
+                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">Shift Name</span>
+                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">Start</span>
+                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">End</span>
+                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">Slots</span>
+                <span></span>
+            </div>
+        </div>
+    `;
+
+    const shiftList = clone.querySelector('.shift-list');
+
+    shifts.forEach(s => {
+        addShiftRowWithData(shiftList, s);
+    });
+
+    elements.stationsContainer.appendChild(clone);
+    attachStationListeners(clone);
+}
+
+function addShiftRowWithData(shiftList, data) {
+    const row = document.createElement('div');
+    row.className = 'shift-row';
+    row.innerHTML = `
+        <input type="text" class="shift-input shift-name" value="${data.name || ''}" placeholder="Shift Name">
+        <input type="time" class="shift-input shift-start" value="${data.start || '09:00'}">
+        <input type="time" class="shift-input shift-end" value="${data.end || '12:00'}">
+        <input type="number" class="shift-input shift-capacity" value="${data.capacity || 10}" min="1">
+        <button type="button" class="remove-btn" title="Remove Shift">×</button>
+    `;
+    shiftList.appendChild(row);
+    row.querySelector('.remove-btn').addEventListener('click', () => row.remove());
 }
 
 function addShiftRow(shiftList) {

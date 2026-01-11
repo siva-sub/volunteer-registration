@@ -1145,6 +1145,66 @@
     font-weight: 600;
 }
 
+/* Question Editor Cards (Matching Station Cards) */
+.questions-editor {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.question-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s;
+}
+
+.question-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-3);
+}
+
+.question-body {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+}
+
+.question-input-main {
+    flex: 2;
+}
+
+.question-input-type {
+    flex: 1;
+}
+
+.question-options {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.btn-remove-q {
+    color: var(--color-text-muted);
+    background: transparent;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.btn-remove-q:hover {
+    color: var(--color-danger);
+}
+
 /* Station Card */
 .station-card {
     background: var(--color-white);

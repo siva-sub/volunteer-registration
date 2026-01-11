@@ -430,6 +430,11 @@
                                         <span class="stat-badge"><span class="slot-count"></span> Slots/Day</span>
                                         <span class="stat-badge"><span class="station-count"></span> Stations</span>
                                     </div>
+                                    <button type="button" id="customizeTemplateBtn"
+                                        class="action-btn action-btn--secondary action-btn--sm"
+                                        style="width: 100%; margin-top: var(--space-3);">
+                                        ✏️ Customize Schedule
+                                    </button>
                                 </div>
                                 <p class="form-subtext">Select a template to auto-generate volunteer slots based on the
                                     dates above.</p>
@@ -537,6 +542,19 @@
                                     <span style="font-size: 0.8rem; color: var(--color-text-muted);">after</span>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Feedback Questions -->
+                        <div class="form-group" style="margin-top: var(--space-6);">
+                            <label class="form-label">Feedback Questions</label>
+                            <p class="form-subtext">Custom questions to ask volunteers after their shift.</p>
+                            <div id="questionsEditor" class="questions-editor">
+                                <!-- Dynamic questions here -->
+                            </div>
+                            <button type="button" class="action-btn action-btn--secondary action-btn--sm"
+                                id="addQuestionBtn" style="margin-top: var(--space-2);">
+                                + Add Question
+                            </button>
                         </div>
 
                         <!-- Coordinator Email -->
