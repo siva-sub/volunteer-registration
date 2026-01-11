@@ -521,17 +521,49 @@ function renderQuestionEditor() {
         </div>
     `).join('');
 
-    // Attach local listeners to inputs to update state
+    // Attach local listeners to inputs to update state AND preview
     elements.questionsEditor.querySelectorAll('.question-card').forEach(card => {
         const index = card.dataset.index;
+        const previewLabel = card.querySelector('.question-preview label');
+        const previewInputContainer = card.querySelector('.question-preview div:last-child');
+
+        // Function to update preview text
+        const updatePreviewText = () => {
+            const q = state.eventQuestions[index];
+            const textHTML = q.question_text || '<span style="color:var(--color-text-muted); font-style:italic;">Your question text...</span>';
+            const reqHTML = q.is_required ? '<span style="color:red">*</span>' : '';
+            previewLabel.innerHTML = `${textHTML} ${reqHTML}`;
+        };
+
         card.querySelector('.q-text').addEventListener('input', (e) => {
             state.eventQuestions[index].question_text = e.target.value;
+            updatePreviewText();
         });
+
         card.querySelector('.q-type').addEventListener('change', (e) => {
             state.eventQuestions[index].question_type = e.target.value;
+            // For type change, we re-render the input part of preview
+            // We find the div that contains the input (last child of the wrapper)
+            // Actually, my structure is: div(margin-top:6px) -> label, then input.
+            // So we need to target the container's last child node or append/replace.
+            // Let's just find the parent div of the label and update its innerHTML completely or just the input part?
+            // Safer to use the renderPreviewInput helper.
+            const wrapper = card.querySelector('.question-preview > div');
+            if (wrapper) {
+                // Remove old input (last child)
+                const oldInput = wrapper.lastElementChild;
+                if (oldInput && oldInput.tagName !== 'LABEL') oldInput.remove();
+
+                // Append new
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = renderPreviewInput(e.target.value);
+                wrapper.appendChild(tempDiv.firstElementChild);
+            }
         });
+
         card.querySelector('.q-required').addEventListener('change', (e) => {
             state.eventQuestions[index].is_required = e.target.checked;
+            updatePreviewText();
         });
     });
 }
