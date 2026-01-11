@@ -761,4 +761,48 @@ function init() {
   loadEventData();
 }
 
+// =====================================================
+// WAITLIST
+// =====================================================
+
+window.joinWaitlist = async function (slotId) {
+  const name = elements.fullNameInput.value.trim();
+  const phone = elements.phoneInput.value.trim();
+  const email = elements.emailInput.value.trim();
+
+  if (!name || !phone) {
+    alert('Please fill in your name and phone number first, then click "Join Waitlist".');
+    elements.fullNameInput.focus();
+    return;
+  }
+
+  const slot = state.slots.find(s => s.id === slotId);
+  const slotName = slot ? `${slot.shift_name} on ${slot.date}` : 'this shift';
+
+  if (!confirm(`Join waitlist for ${slotName}?\n\nWe'll notify you if a spot opens up.`)) {
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase.rpc('join_waitlist', {
+      p_slot_id: slotId,
+      p_full_name: name,
+      p_phone: phone,
+      p_email: email || null
+    });
+
+    if (error) throw error;
+
+    if (!data.success) {
+      alert(data.error || 'Could not join waitlist');
+      return;
+    }
+
+    alert(`✅ Added to waitlist!\n\nYour position: #${data.position}\n\nWe'll contact you if a spot opens.`);
+  } catch (error) {
+    console.error('Waitlist error:', error);
+    alert('Failed to join waitlist. Please try again.');
+  }
+};
+
 init();

@@ -383,10 +383,41 @@
                                     <span>Require volunteer check-in</span>
                                 </label>
                                 <label class="checkbox-label">
+                                    <input type="checkbox" id="waitlistEnabled">
+                                    <span>Enable waitlist for full slots</span>
+                                </label>
+                                <label class="checkbox-label">
                                     <input type="checkbox" id="eventPaused">
                                     <span>Start paused (disable registrations)</span>
                                 </label>
                             </div>
+                        </div>
+                        <!-- Check-in Window Settings (collapsed) -->
+                        <details class="form-details">
+                            <summary class="form-details-toggle">▼ Check-in Window Settings</summary>
+                            <div class="form-group" style="margin-top: 16px;">
+                                <label class="form-label">Check-in opens</label>
+                                <div class="form-inline">
+                                    <input type="number" id="checkinOpenOffset" class="form-input" value="30" min="0"
+                                        max="180" style="width: 80px;">
+                                    <span>minutes before shift starts</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Check-in closes</label>
+                                <div class="form-inline">
+                                    <input type="number" id="checkinCloseOffset" class="form-input" value="120" min="0"
+                                        max="480" style="width: 80px;">
+                                    <span>minutes after shift starts</span>
+                                </div>
+                            </div>
+                        </details>
+                        <!-- Coordinator Email -->
+                        <div class="form-group" style="margin-top: 16px;">
+                            <label for="coordinatorEmail" class="form-label">Coordinator Email (for reminders)</label>
+                            <input type="email" id="coordinatorEmail" class="form-input"
+                                placeholder="coordinator@example.com">
+                            <p class="form-subtext">Receives 7/3/1 day reminder emails before event</p>
                         </div>
                         <div class="modal-actions">
                             <button type="button" class="action-btn action-btn--secondary"
