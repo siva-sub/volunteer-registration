@@ -176,6 +176,13 @@ a:hover {
   min-height: 100vh;
 }
 
+#eventListSection,
+#registrationSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
 .main {
   flex: 1;
   padding: var(--space-6) 0 var(--space-12);

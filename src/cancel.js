@@ -11,7 +11,11 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = 'https://zpqnoxllhbyggyxvvpaa.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_uXC8v4RM1HHCGEZKOnpbMg_seCrVNYo';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+        persistSession: false
+    }
+});
 
 // =====================================================
 // DOM ELEMENTS
