@@ -85,6 +85,10 @@ const elements = {
     contactWhatsapp: document.getElementById('contactWhatsapp'),
     eventStartDate: document.getElementById('eventStartDate'),
     eventEndDate: document.getElementById('eventEndDate'),
+    feedbackEnabled: document.getElementById('feedbackEnabled'),
+    certificatesEnabled: document.getElementById('certificatesEnabled'),
+    checkinRequired: document.getElementById('checkinRequired'),
+    eventPaused: document.getElementById('eventPaused'),
     eventCancelBtn: document.getElementById('eventCancelBtn'),
 
     // Edit Registration Modal
@@ -365,7 +369,10 @@ async function handleCreateEventSubmit(e) {
                     contact_person: person,
                     contact_whatsapp: whatsapp,
                     dates_config: datesConfig,
-                    active: true
+                    active: true,
+                    feedback_enabled: elements.feedbackEnabled.checked,
+                    certificates_enabled: elements.certificatesEnabled.checked,
+                    paused: elements.eventPaused.checked
                 })
                 .select()
                 .single();
