@@ -184,6 +184,68 @@
                     </div>
                 </section>
 
+                <!-- Sales Reports Section -->
+                <section class="reports-section" id="reportsSection">
+                    <div class="section-header">
+                        <h3 class="section-title">📊 Sales Reports</h3>
+                        <button class="action-btn action-btn--secondary" id="exportReportsBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Export CSV
+                        </button>
+                    </div>
+
+                    <!-- Summary Cards -->
+                    <div class="reports-summary" id="reportsSummary">
+                        <div class="summary-card">
+                            <span class="summary-icon">📝</span>
+                            <span class="summary-value" id="totalReportsCount">0</span>
+                            <span class="summary-label">Total Reports</span>
+                        </div>
+                        <div class="summary-card summary-card--success">
+                            <span class="summary-icon">✅</span>
+                            <span class="summary-value" id="verifiedReportsCount">0</span>
+                            <span class="summary-label">Verified</span>
+                        </div>
+                        <div class="summary-card summary-card--warning">
+                            <span class="summary-icon">⚠️</span>
+                            <span class="summary-value" id="flaggedReportsCount">0</span>
+                            <span class="summary-label">Flagged</span>
+                        </div>
+                        <div class="summary-card summary-card--primary">
+                            <span class="summary-icon">💰</span>
+                            <span class="summary-value" id="totalSalesAmount">$0</span>
+                            <span class="summary-label">Total Sales</span>
+                        </div>
+                    </div>
+
+                    <!-- Reports Table -->
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Shift</th>
+                                    <th>Volunteer</th>
+                                    <th>Items</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportsTableBody">
+                                <tr>
+                                    <td colspan="6" class="table-loading">Loading reports...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="table-empty" id="reportsEmpty" hidden>No sales reports submitted yet.</p>
+                </section>
+
                 <!-- Send Reminders -->
                 <section class="reminders-section">
                     <h3 class="section-title">Reminder Emails</h3>
