@@ -78,11 +78,17 @@
                 </section>
 
                 <!-- Sales Reference Section -->
-                <section id="salesSection" style="margin-top: 20px;" hidden>
-                    <div class="card info-card" style="border-color: var(--color-success);">
-                        <div class="card-title" style="color: var(--color-success);">💰 Sales Reference</div>
-                        <p class="card-message" style="margin-bottom: 10px;">Please refer to these prices:</p>
-                        <div id="salesList" style="text-align: left; display: grid; gap: 8px;"></div>
+                <section id="salesSection" class="intro-section" hidden>
+                    <div class="manage-card" style="border-left: 4px solid var(--color-success);">
+                        <div class="manage-header" style="margin-bottom: var(--space-4);">
+                            <h3
+                                style="color: var(--color-success); font-size: var(--font-size-lg); display: flex; align-items: center; gap: var(--space-2);">
+                                💰 Sales Reference
+                            </h3>
+                            <p style="font-size: var(--font-size-sm); color: var(--color-text-muted);">Please refer to
+                                these prices:</p>
+                        </div>
+                        <div id="salesList" class="sales-grid"></div>
                     </div>
                 </section>
 

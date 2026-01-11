@@ -10,120 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./src/styles.css">
-    <style>
-        /* Specific styles for report items that aren't in styles.css yet */
-        .sales-items {
-            margin-bottom: var(--space-6);
-        }
 
-        .sales-item {
-            background: var(--color-white);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-lg);
-            padding: var(--space-4);
-            margin-bottom: var(--space-3);
-        }
-
-        .sales-item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--space-3);
-        }
-
-        .sales-item-name {
-            font-weight: 600;
-            color: var(--color-text);
-        }
-
-        .sales-item-price {
-            font-size: var(--font-size-xs);
-            color: var(--color-text-muted);
-            background: var(--color-secondary-light);
-            padding: 2px 8px;
-            border-radius: var(--radius-full);
-        }
-
-        .sales-item-inputs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--space-3);
-        }
-
-        .sales-input-group label {
-            display: block;
-            font-size: var(--font-size-xs);
-            color: var(--color-text-muted);
-            margin-bottom: var(--space-1);
-        }
-
-        .sales-input-group input {
-            width: 100%;
-            padding: var(--space-2) var(--space-3);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-md);
-            font-size: var(--font-size-sm);
-        }
-
-        .total-section {
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-            color: var(--color-white);
-            border-radius: var(--radius-lg);
-            padding: var(--space-6);
-            text-align: center;
-            margin-bottom: var(--space-6);
-            box-shadow: var(--shadow-md);
-        }
-
-        .total-label {
-            font-size: var(--font-size-sm);
-            opacity: 0.9;
-            margin-bottom: var(--space-1);
-        }
-
-        .total-amount {
-            font-size: var(--font-size-3xl);
-            font-weight: 700;
-        }
-
-        .notes-section {
-            margin-bottom: var(--space-6);
-        }
-
-        .notes-section label {
-            display: block;
-            font-size: var(--font-size-sm);
-            font-weight: 600;
-            margin-bottom: var(--space-2);
-        }
-
-        .notes-section textarea {
-            width: 100%;
-            padding: var(--space-3);
-            border: 1px solid var(--color-border);
-            border-radius: var(--radius-md);
-            min-height: 100px;
-            font-family: inherit;
-            resize: vertical;
-        }
-
-        /* Spinner for report */
-        .spinner {
-            width: 24px;
-            height: 24px;
-            border: 3px solid rgba(0, 0, 0, 0.1);
-            border-top-color: var(--color-primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto var(--space-3);
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-    </style>
 </head>
 
 <body>
@@ -214,7 +101,7 @@
 
                     <!-- Sales Items -->
                     <h3 style="margin-bottom: var(--space-3);">1. Sales Items</h3>
-                    <div class="sales-items" id="salesItems">
+                    <div class="report-sales-items" id="salesItems">
                         <!-- Dynamically populated -->
                     </div>
 
@@ -276,7 +163,7 @@
                     </div>
 
                     <!-- Notes -->
-                    <div class="notes-section">
+                    <div class="report-notes-section">
                         <label for="notesInput">Notes / Discrepancy Reason</label>
                         <textarea id="notesInput"
                             placeholder="If amounts don't match, please explain here..."></textarea>

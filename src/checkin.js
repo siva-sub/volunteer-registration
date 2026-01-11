@@ -133,9 +133,9 @@ function renderSalesInfo(data) {
     if (data.sales_config && data.sales_config.items && data.sales_config.items.length > 0) {
         section.hidden = false;
         list.innerHTML = data.sales_config.items.map(item => `
-            <div style="display: flex; justify-content: space-between; padding: 8px; background: #fff; border-radius: 4px; border: 1px solid #eee;">
-                <span style="font-weight: 500;">${item.name}</span>
-                <span style="font-weight: 600; color: var(--color-primary);">$${parseFloat(item.price).toFixed(2)}</span>
+            <div class="sales-card">
+                <span class="sales-name">${item.name}</span>
+                <span class="sales-price">$${parseFloat(item.price).toFixed(2)}</span>
             </div>
         `).join('');
     } else {

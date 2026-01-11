@@ -135,17 +135,17 @@ function renderForm(data) {
         state.salesItems = items.map(item => ({ ...item, quantity: 0, amount: 0 }));
 
         elements.salesItems.innerHTML = items.map((item, index) => `
-            <div class="sales-item" data-index="${index}">
-                <div class="sales-item-header">
-                    <span class="sales-item-name">${item.name}</span>
-                    <span class="sales-item-price">$${item.unit_price.toFixed(2)}</span>
+            <div class="report-sales-item" data-index="${index}">
+                <div class="report-sales-header">
+                    <span class="report-item-name">${item.name}</span>
+                    <span class="report-item-price">$${item.unit_price.toFixed(2)}</span>
                 </div>
-                <div class="sales-item-inputs">
-                    <div class="sales-input-group">
+                <div class="report-item-inputs">
+                    <div class="report-input-group">
                         <label>Qty Sold</label>
                         <input type="number" class="qty-input" data-index="${index}" min="0" value="0">
                     </div>
-                    <div class="sales-input-group">
+                    <div class="report-input-group">
                         <label>Total ($)</label>
                         <input type="number" class="amount-input" data-index="${index}" min="0" step="0.01" value="0.00">
                     </div>

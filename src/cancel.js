@@ -139,16 +139,24 @@ function renderRegistration(data) {
     elements.slotsList.innerHTML = slots.map(slot => {
         const isPast = !slot.can_cancel;
 
+        // Simple icon logic based on shift name
+        let icon = '📅';
+        const nameLower = (slot.shift_name || '').toLowerCase();
+        if (nameLower.includes('morning')) icon = '🌅';
+        else if (nameLower.includes('evening')) icon = '🌙';
+        else if (nameLower.includes('full')) icon = '☀️';
+
         return `
-      <label class="slot-checkbox ${isPast ? 'slot-checkbox--disabled' : ''}" data-slot-id="${slot.slot_id}">
-        <input type="checkbox" name="slot" value="${slot.slot_id}" ${isPast ? 'disabled' : ''}>
-        <div class="slot-checkbox-content">
-          <div class="slot-checkbox-info">
-            <span class="slot-checkbox-date">${formatDate(slot.date)}</span>
-            <span class="slot-checkbox-time">${formatTime(slot.start_time)} - ${formatTime(slot.end_time)}</span>
-            ${slot.station ? `<span class="slot-checkbox-station">${slot.station}</span>` : ''}
-          </div>
-          ${isPast ? '<span class="slot-checkbox-badge">Past</span>' : ''}
+      <label class="slot-selection-label">
+        <input type="checkbox" name="slot" value="${slot.slot_id}" class="slot-selection-input" ${isPast ? 'disabled' : ''}>
+        <div class="slot-selection-card ${isPast ? 'opacity-50' : ''}" style="${isPast ? 'opacity: 0.6; background: var(--color-bg);' : ''}">
+           <div class="slot-icon-wrapper">${icon}</div>
+           <div class="slot-info">
+             <div class="slot-date">${formatDate(slot.date)}</div>
+             <div class="slot-time">${formatTime(slot.start_time)} – ${formatTime(slot.end_time)}</div>
+             <div class="slot-station">${slot.shift_name} ${slot.station ? `• ${slot.station}` : ''}</div>
+           </div>
+           ${isPast ? '<span style="font-size: 0.75rem; background: var(--color-border); padding: 2px 8px; border-radius: 999px;">Past</span>' : ''}
         </div>
       </label>
     `;

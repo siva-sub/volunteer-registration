@@ -56,24 +56,6 @@
                 <!-- Multiple Results Section -->
                 <section id="resultsSection" hidden>
                     <div class="manage-card">
-                        <div class="manage-header">
-                            <h2 id="resultsCount">Found Registrations</h2>
-                            <p>Select one to manage your shifts:</p>
-                        </div>
-                        <div id="resultsList" class="results-list">
-                            <!-- Results will be inserted here -->
-                        </div>
-                        <div class="cancel-actions">
-                            <button type="button" class="action-btn action-btn--secondary" id="backToSearchBtn">Back to
-                                Search</button>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Error State -->
-                <section id="errorSection" hidden>
-                    <div class="error-card">
-                        <div class="error-icon">⚠️</div>
                         <h3 id="errorTitle">Link Invalid</h3>
                         <p id="errorMessage">This link is no longer valid or has expired.</p>
                         <a href="/" class="action-btn action-btn--primary">Return to Home</a>
@@ -83,20 +65,32 @@
                 <!-- Registration Details -->
                 <section id="registrationSection" hidden>
                     <div class="manage-card">
-                        <div class="manage-header">
-                            <h2>Hello, <span id="volunteerName"></span></h2>
-                            <p>Select the shifts you'd like to cancel:</p>
+                        <div class="manage-header text-center" style="margin-bottom: var(--space-6);">
+                            <div class="user-avatar"
+                                style="width: 60px; height: 60px; background: var(--color-secondary); color: var(--color-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto var(--space-3);">
+                                👤
+                            </div>
+                            <h2 style="font-size: var(--font-size-xl); margin-bottom: var(--space-1);">Welcome back,
+                                <span id="volunteerName" style="color: var(--color-primary);"></span>
+                            </h2>
+                            <p style="color: var(--color-text-muted);">Select the shifts you would like to cancel below:
+                            </p>
                         </div>
 
                         <form id="cancelForm">
-                            <div class="slots-list" id="slotsList">
-                                <!-- Slots will be inserted here -->
+                            <div class="slots-list" id="slotsList" style="display: grid; gap: var(--space-2);">
+                                <!-- Slots will be inserted here dynamically -->
                             </div>
 
-                            <div class="cancel-actions">
-                                <button type="submit" class="action-btn action-btn--danger" id="cancelBtn" disabled>
+                            <div class="cancel-actions" style="margin-top: var(--space-6); text-align: center;">
+                                <button type="submit" class="action-btn action-btn--danger" id="cancelBtn" disabled
+                                    style="width: 100%; max-width: 300px;">
                                     Cancel Selected Shifts
                                 </button>
+                                <p
+                                    style="margin-top: var(--space-3); font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                                    Action cannot be undone.
+                                </p>
                             </div>
                         </form>
                     </div>
