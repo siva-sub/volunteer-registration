@@ -2,6 +2,9 @@
 -- SALES & INVENTORY TRACKING MIGRATION
 -- =====================================================
 
+-- Add coordinator email to events for reminders
+ALTER TABLE events ADD COLUMN IF NOT EXISTS coordinator_email TEXT;
+
 -- Add slot type and sales configuration to shift_slots
 ALTER TABLE shift_slots ADD COLUMN IF NOT EXISTS slot_type TEXT DEFAULT 'standard';
 -- slot_type: 'standard' (check-in only), 'sales' (requires report), 'inventory' (track quantities)
@@ -12,6 +15,12 @@ ALTER TABLE shift_slots ADD COLUMN IF NOT EXISTS sales_config JSONB;
 -- Per-slot reporting configuration
 ALTER TABLE shift_slots ADD COLUMN IF NOT EXISTS report_required BOOLEAN DEFAULT FALSE;
 -- If TRUE, at least one volunteer must submit a report for reconciliation
+
+-- Float (initial cash) for sales slots
+ALTER TABLE shift_slots ADD COLUMN IF NOT EXISTS float_amount DECIMAL(10,2);
+
+-- Shift leader designation
+ALTER TABLE registration_slots ADD COLUMN IF NOT EXISTS is_shift_leader BOOLEAN DEFAULT FALSE;
 
 -- Shift reports submitted by volunteers
 CREATE TABLE IF NOT EXISTS shift_reports (
