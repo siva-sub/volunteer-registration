@@ -29,10 +29,12 @@ const state = {
     currentView: 'events', // 'events' or 'dashboard'
     activeEventId: null,
     events: [],
+    templates: [], // event templates
     registrations: [], // registrations for active event
     slots: [], // slots for active event
     selectedDateFilter: 'all',
-    regIdToDelete: null
+    regIdToDelete: null,
+    editingEventId: null
 };
 
 // =====================================================
@@ -303,6 +305,45 @@ function openCreateEventModal() {
     elements.eventForm.reset();
     elements.eventModal.querySelector('.modal-title').textContent = 'Create Event';
     elements.eventModal.hidden = false;
+    loadEventTemplates();
+}
+
+async function loadEventTemplates() {
+    try {
+        const { data, error } = await supabase
+            .from('event_templates')
+            .select('*')
+            .order('category', { ascending: true });
+
+        if (error) throw error;
+
+        state.templates = data || [];
+
+        // Populate dropdown
+        elements.eventTemplate.innerHTML = '<option value="">-- Custom Event (Manual Slots) --</option>';
+        const categories = {};
+
+        data.forEach(tpl => {
+            if (!categories[tpl.category]) categories[tpl.category] = [];
+            categories[tpl.category].push(tpl);
+        });
+
+        Object.keys(categories).forEach(cat => {
+            const group = document.createElement('optgroup');
+            group.label = cat.charAt(0).toUpperCase() + cat.slice(1).replace('_', ' ');
+
+            categories[cat].forEach(tpl => {
+                const option = document.createElement('option');
+                option.value = tpl.id;
+                option.textContent = `${tpl.icon || '📋'} ${tpl.name}`;
+                group.appendChild(option);
+            });
+
+            elements.eventTemplate.appendChild(group);
+        });
+    } catch (error) {
+        console.error('Failed to load templates:', error);
+    }
 }
 
 function openEditEventModal(eventId) {
@@ -380,8 +421,15 @@ async function handleCreateEventSubmit(e) {
 
             if (eventError) throw eventError;
 
-            // 2. Generate Default Slots for this event
-            await generateDefaultSlots(eventData.id, start, end);
+            // 2. Generate Slots for this event
+            const templateId = elements.eventTemplate.value;
+            if (templateId) {
+                // Use template - apply for each day in date range
+                await applyTemplateToEvent(eventData.id, templateId, start, end);
+            } else {
+                // No template - generate default morning/evening slots
+                await generateDefaultSlots(eventData.id, start, end);
+            }
 
             closeEventModal();
             await loadEvents();
@@ -435,6 +483,46 @@ async function generateDefaultSlots(eventId, startStr, endStr) {
     if (error) {
         console.error('Error generating slots:', error);
         alert('Event created but slots generation failed. Check console.');
+    }
+}
+
+async function applyTemplateToEvent(eventId, templateId, startStr, endStr) {
+    const template = state.templates.find(t => t.id === templateId);
+    if (!template) {
+        console.error('Template not found');
+        return;
+    }
+
+    const slots = [];
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+    const slotConfig = template.slot_config?.slots || [];
+
+    // For each day in the date range
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        const dayOfWeek = d.toLocaleDateString('en-US', { weekday: 'long' });
+
+        // Create each slot from the template
+        slotConfig.forEach(slot => {
+            slots.push({
+                event_id: eventId,
+                date: dateStr,
+                day_of_week: dayOfWeek,
+                shift_name: slot.name,
+                start_time: slot.start,
+                end_time: slot.end,
+                capacity: slot.capacity || 10,
+                registered_count: 0,
+                station: slot.station || null
+            });
+        });
+    }
+
+    const { error } = await supabase.from('shift_slots').insert(slots);
+    if (error) {
+        console.error('Error applying template slots:', error);
+        alert('Event created but template slots failed. Check console.');
     }
 }
 

@@ -368,6 +368,7 @@ function renderShiftCards() {
       >
         <span class="shift-icon">${icon}</span>
         <span class="shift-name">${slot.shift_name}</span>
+        ${slot.station ? `<span class="shift-station">${slot.station}</span>` : ''}
         <span class="shift-time">${timeRange}</span>
         <div class="shift-availability shift-availability--${availability.class}">
           <div class="availability-dots">

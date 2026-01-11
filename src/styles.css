@@ -512,6 +512,19 @@ a:hover {
   margin-bottom: var(--space-4);
 }
 
+.shift-station {
+  display: inline-block;
+  background: var(--color-accent);
+  color: white;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .shift-availability {
   display: flex;
   align-items: center;
