@@ -466,9 +466,9 @@ function renderQuestionEditor() {
 
     elements.questionsEditor.innerHTML = state.eventQuestions.map((q, i) => `
         <div class="question-card" data-index="${i}" style="border: 1px solid var(--color-border); padding: 12px; border-radius: 8px; margin-bottom: 8px; background: #fff;">
-            <div class="question-header" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-muted);">Question ${i + 1}</span>
-                <button type="button" class="btn-remove-q" onclick="removeQuestion(${i})" title="Remove Question" style="color: red;">×</button>
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                <span class="section-header-text">Question ${i + 1}</span>
+                <button type="button" class="remove-btn" title="Remove Question" onclick="removeQuestion(${i})" ${state.eventQuestions.length === 1 ? 'disabled' : ''}>×</button>
             </div>
             <div class="question-body" style="display: flex; flex-direction: column; gap: 8px;">
                 <div class="question-input-main" style="width: 100%;">
@@ -2192,10 +2192,10 @@ function addStationWithShifts(stationName, shifts) {
         </div>
         <div class="shift-list">
              <div class="shift-row" style="background: transparent; border: none; padding: 0;">
-                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">Shift Name</span>
-                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">Start</span>
-                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">End</span>
-                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">Slots</span>
+                <span class="table-header-text">Shift Name</span>
+                <span class="table-header-text">Start</span>
+                <span class="table-header-text">End</span>
+                <span class="table-header-text">Slots</span>
                 <span></span>
             </div>
         </div>

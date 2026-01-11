@@ -56,6 +56,37 @@
     padding: var(--space-6) 0 var(--space-12);
 }
 
+/* Text Utilities for Forms */
+.form-label-md {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--color-text);
+    margin-bottom: var(--space-2);
+    display: block;
+}
+
+.table-header-text {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.section-header-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-2);
+}
+
+/* Enhancing existing btn */
+.mode-btn {
+    padding: var(--space-3) var(--space-4);
+    font-size: 1rem;
+    /* Increased from default */
+}
+
 /* Auth Card */
 .auth-card {
     max-width: 400px;
