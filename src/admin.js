@@ -673,34 +673,37 @@ async function handleCreateEventSubmit(e) {
 
         } else {
             // CREATE
-            const { data: eventData, error: eventError } = await supabase
-                .from('events')
-                .insert({
-                    title,
-                    organization_name: orgName,
-                    description: 'Volunteer Registration',
-                    contact_person: person,
-                    contact_whatsapp: whatsapp,
-                    dates_config: datesConfig,
-                    active: true,
-                    feedback_enabled: elements.feedbackEnabled?.checked || false,
-                    certificates_enabled: elements.certificatesEnabled?.checked || false,
-                    checkin_required: elements.checkinRequired?.checked || false,
-                    waitlist_enabled: elements.waitlistEnabled?.checked || false,
-                    paused: elements.eventPaused?.checked || false,
-                    coordinator_email: elements.coordinatorEmail?.value || null,
-                    checkin_open_offset_minutes: parseInt(elements.checkinOpenOffset?.value) || 60,
-                    checkin_close_offset_minutes: parseInt(elements.checkinCloseOffset?.value) || 30,
-                    registration_mode: document.querySelector('input[name="registrationMode"]:checked')?.value || 'instant',
-                    waitlist_mode: document.querySelector('input[name="waitlistMode"]:checked')?.value || 'manual',
-                    advanced_reporting_enabled: document.getElementById('advancedReportingEnabled')?.checked || false,
-                    default_float_amount: parseFloat(document.getElementById('defaultFloatAmount')?.value) || 0,
-                    is_hidden: elements.eventHidden?.checked || false
-                })
-                .select()
-                .single();
+            // CREATE
+            // Changed to RPC to bypass RLS and enforce password check
+            const { data: rpcData, error: rpcError } = await supabase.rpc('admin_create_event', {
+                p_password: ADMIN_PASSWORD,
+                p_title: title,
+                p_organization_name: orgName,
+                p_contact_person: person,
+                p_contact_whatsapp: whatsapp,
+                p_dates_config: datesConfig, // Passed as JSONB
+                p_active: true,
+                p_feedback_enabled: elements.feedbackEnabled?.checked || false,
+                p_certificates_enabled: elements.certificatesEnabled?.checked || false,
+                p_checkin_required: elements.checkinRequired?.checked || false,
+                p_paused: elements.eventPaused?.checked || false,
+                p_waitlist_enabled: elements.waitlistEnabled?.checked || false,
+                p_coordinator_email: elements.coordinatorEmail?.value || null,
+                p_checkin_open_offset_minutes: parseInt(elements.checkinOpenOffset?.value) || 60,
+                p_checkin_close_offset_minutes: parseInt(elements.checkinCloseOffset?.value) || 30,
+                p_registration_mode: document.querySelector('input[name="registrationMode"]:checked')?.value || 'instant',
+                p_waitlist_mode: document.querySelector('input[name="waitlistMode"]:checked')?.value || 'manual',
+                p_advanced_reporting_enabled: document.getElementById('advancedReportingEnabled')?.checked || false,
+                p_default_float_amount: parseFloat(document.getElementById('defaultFloatAmount')?.value) || 0,
+                p_is_hidden: elements.eventHidden?.checked || false
+            });
 
-            if (eventError) throw eventError;
+            if (rpcError) throw rpcError;
+
+            // Handle RPC response structure (RPC returns { success: true, event_id: ..., data: {...} })
+            const eventData = rpcData.success ? rpcData.data : null;
+
+            // if (eventError) throw eventError; // Removed as rpcError is already checked above
 
             // Auto-create default feedback questions if enabled
             const feedbackEnabled = elements.feedbackEnabled?.checked || false;
