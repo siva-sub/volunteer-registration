@@ -598,6 +598,24 @@ a:hover {
   transform: scale(1);
 }
 
+/* Waitlist Button */
+.waitlist-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.waitlist-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+}
+
 /* Skeleton loading */
 .shift-card.skeleton {
   cursor: default;

@@ -378,11 +378,17 @@ function renderShiftCards() {
           </div>
           <span>${availability.text}</span>
         </div>
+        ${isFull ? `
+        <button class="waitlist-btn" data-slot-id="${slot.id}" onclick="event.stopPropagation(); window.joinWaitlist('${slot.id}')">
+          📋 Join Waitlist
+        </button>
+        ` : `
         <div class="shift-check">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
             <polyline points="20,6 9,17 4,12"></polyline>
           </svg>
         </div>
+        `}
       </div>
     `;
   }).join('');
