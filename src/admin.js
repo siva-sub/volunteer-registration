@@ -385,6 +385,22 @@ function openCreateEventModal() {
     if (defaultReg) defaultReg.checked = true;
     if (defaultWl) defaultWl.checked = true;
 
+    // Default Questions
+    state.eventQuestions = [
+        {
+            question_text: 'How would you rate your experience?',
+            question_type: 'stars',
+            display_order: 1,
+            is_required: true
+        },
+        {
+            question_text: 'Any feedback or suggestions?',
+            question_type: 'text',
+            display_order: 2,
+            is_required: false
+        }
+    ];
+
     renderQuestionEditor();
     loadEventTemplates();
 }
@@ -561,7 +577,8 @@ async function handleCreateEventSubmit(e) {
                 p_checkin_open_offset_minutes: parseInt(elements.checkinOpenOffset.value),
                 p_checkin_close_offset_minutes: parseInt(elements.checkinCloseOffset.value),
                 p_registration_mode: document.querySelector('input[name="registrationMode"]:checked')?.value || 'instant',
-                p_waitlist_mode: document.querySelector('input[name="waitlistMode"]:checked')?.value || 'manual'
+                p_waitlist_mode: document.querySelector('input[name="waitlistMode"]:checked')?.value || 'manual',
+                p_advanced_reporting_enabled: document.getElementById('advancedReportingEnabled')?.checked || false
             });
 
             if (error) throw error;
@@ -593,7 +610,8 @@ async function handleCreateEventSubmit(e) {
                     checkin_open_offset_minutes: parseInt(elements.checkinOpenOffset.value),
                     checkin_close_offset_minutes: parseInt(elements.checkinCloseOffset.value),
                     registration_mode: document.querySelector('input[name="registrationMode"]:checked')?.value || 'instant',
-                    waitlist_mode: document.querySelector('input[name="waitlistMode"]:checked')?.value || 'manual'
+                    waitlist_mode: document.querySelector('input[name="waitlistMode"]:checked')?.value || 'manual',
+                    advanced_reporting_enabled: document.getElementById('advancedReportingEnabled')?.checked || false
                 })
                 .select()
                 .single();
@@ -663,6 +681,19 @@ async function generateCustomSlots(eventId, startStr, endStr) {
                 const endTime = row.querySelector('.shift-end').value;
                 const capacity = parseInt(row.querySelector('.shift-capacity').value) || 10;
 
+                // Parse sales config
+                let salesConfig = null;
+                const isSales = row.querySelector('.shift-sales-toggle')?.checked;
+                if (isSales) {
+                    const items = [];
+                    row.querySelectorAll('.sales-item-row').forEach(itemRow => {
+                        const iName = itemRow.querySelector('.sales-item-name').value;
+                        const iPrice = parseFloat(itemRow.querySelector('.sales-item-price').value);
+                        if (iName) items.push({ name: iName, price: iPrice || 0 });
+                    });
+                    if (items.length > 0) salesConfig = { items };
+                }
+
                 if (name && startTime && endTime) {
                     slots.push({
                         event_id: eventId,
@@ -673,7 +704,8 @@ async function generateCustomSlots(eventId, startStr, endStr) {
                         end_time: endTime,
                         capacity: capacity,
                         station: station,
-                        registered_count: 0
+                        registered_count: 0,
+                        sales_config: salesConfig
                     });
                 }
             });
@@ -804,34 +836,73 @@ function addStationWithShifts(stationName, shifts) {
     attachStationListeners(clone);
 }
 
-function addShiftRowWithData(shiftList, data) {
+// Helper to toggle sales section
+function toggleSalesSection(btn) {
+    const container = btn.closest('.shift-row').querySelector('.sales-config-container');
+    const isHidden = container.hidden;
+    container.hidden = !isHidden;
+
+    // Toggle state style if needed
+    btn.style.opacity = isHidden ? '1' : '0.5';
+}
+
+window.toggleSalesSection = toggleSalesSection; // Expose global
+window.addSalesItemRow = function (btn) {
+    const list = btn.closest('.sales-config-container').querySelector('.sales-items-list');
+    const itemRow = document.createElement('div');
+    itemRow.className = 'sales-item-row';
+    itemRow.style.cssText = "display: flex; gap: 4px; margin-bottom: 4px;";
+    itemRow.innerHTML = `
+        <input type="text" class="form-input form-input--sm sales-item-name" placeholder="Item Name" style="flex: 2;">
+        <input type="number" class="form-input form-input--sm sales-item-price" placeholder="Price" step="0.1" style="flex: 1;">
+        <button type="button" class="remove-btn" onclick="this.parentElement.remove()">×</button>
+    `;
+    list.appendChild(itemRow);
+};
+
+function addShiftRowWithData(shiftList, data = {}) {
+    // If data comes from template, check for sales_config
+    const salesConfig = data.sales_config || null;
+    const hasSales = salesConfig && salesConfig.items && salesConfig.items.length > 0;
+
     const row = document.createElement('div');
     row.className = 'shift-row';
+    row.style.flexWrap = 'wrap';
     row.innerHTML = `
-        <input type="text" class="shift-input shift-name" value="${data.name || ''}" placeholder="Shift Name">
-        <input type="time" class="shift-input shift-start" value="${data.start || '09:00'}">
-        <input type="time" class="shift-input shift-end" value="${data.end || '12:00'}">
-        <input type="number" class="shift-input shift-capacity" value="${data.capacity || 10}" min="1">
-        <button type="button" class="remove-btn" title="Remove Shift">×</button>
+        <div style="display: flex; gap: var(--space-2); align-items: center; width: 100%;">
+            <input type="text" class="shift-input shift-name" value="${data.name || ''}" placeholder="Shift Name">
+            <input type="time" class="shift-input shift-start" value="${data.start || '09:00'}">
+            <input type="time" class="shift-input shift-end" value="${data.end || '12:00'}">
+            <input type="number" class="shift-input shift-capacity" value="${data.capacity || 10}" min="1">
+            <button type="button" class="action-btn action-btn--sm" title="Toggle Sales" onclick="toggleSalesSection(this)" style="padding: 2px 6px; opacity: ${hasSales ? '1' : '0.5'};">💰</button>
+            <button type="button" class="remove-btn" title="Remove Shift">×</button>
+        </div>
+        
+        <!-- Sales Config Section -->
+        <div class="sales-config-container" ${hasSales ? '' : 'hidden'} style="width: 100%; margin-top: 8px; padding: 8px; background: var(--color-background); border-radius: 4px; border: 1px dashed var(--color-border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <label class="checkbox-label" style="font-size: 0.75rem;">
+                    <input type="checkbox" class="shift-sales-toggle" ${hasSales ? 'checked' : ''}> Enable Sales
+                </label>
+                <button type="button" class="action-btn action-btn--secondary action-btn--sm" style="font-size: 0.7rem; padding: 2px 5px;" onclick="addSalesItemRow(this)">+ Item</button>
+            </div>
+            <div class="sales-items-list">
+                ${hasSales ? salesConfig.items.map(item => `
+                    <div class="sales-item-row" style="display: flex; gap: 4px; margin-bottom: 4px;">
+                        <input type="text" class="form-input form-input--sm sales-item-name" placeholder="Item Name" value="${item.name}" style="flex: 2;">
+                        <input type="number" class="form-input form-input--sm sales-item-price" placeholder="Price" step="0.1" value="${item.price}" style="flex: 1;">
+                        <button type="button" class="remove-btn" onclick="this.parentElement.remove()">×</button>
+                    </div>
+                `).join('') : ''}
+            </div>
+        </div>
     `;
     shiftList.appendChild(row);
     row.querySelector('.remove-btn').addEventListener('click', () => row.remove());
 }
 
 function addShiftRow(shiftList) {
-    const row = document.createElement('div');
-    row.className = 'shift-row';
-    row.innerHTML = `
-        <input type="text" class="shift-input shift-name" value="Shift Name" placeholder="Shift Name">
-        <input type="time" class="shift-input shift-start" value="09:00">
-        <input type="time" class="shift-input shift-end" value="12:00">
-        <input type="number" class="shift-input shift-capacity" value="10" min="1">
-        <button type="button" class="remove-btn" title="Remove Shift">×</button>
-    `;
-    shiftList.appendChild(row);
-
-    // Attach listener to remove btn
-    row.querySelector('.remove-btn').addEventListener('click', () => row.remove());
+    addShiftRowWithData(shiftList, {});
 }
 
 function attachStationListeners(stationCard) {
@@ -2080,11 +2151,108 @@ function init() {
         });
     });
 
+    // Template Customization Listener - FIX for "Customize Schedule" button not working
+    if (elements.customizeTemplateBtn) {
+        elements.customizeTemplateBtn.addEventListener('click', () => {
+            const templateId = elements.eventTemplate.value;
+            if (templateId) {
+                populateScheduleBuilderFromTemplate(templateId);
+                // Switch tab to custom mode
+                if (elements.modeCustomBtn) elements.modeCustomBtn.click();
+            }
+        });
+    }
+
     // Sales Item Modal
     if (elements.addSalesItemBtn) elements.addSalesItemBtn.addEventListener('click', openSalesItemModal);
     if (elements.salesItemModalClose) elements.salesItemModalClose.addEventListener('click', closeSalesItemModal);
     if (elements.salesItemCancelBtn) elements.salesItemCancelBtn.addEventListener('click', closeSalesItemModal);
     if (elements.salesItemAddBtn) elements.salesItemAddBtn.addEventListener('click', handleAddSalesItem);
+}
+
+function populateScheduleBuilderFromTemplate(templateId) {
+    const template = state.templates.find(t => t.id === templateId);
+    if (!template) return;
+
+    // Clear existing stations
+    elements.stationsContainer.innerHTML = '';
+
+    const slotConfig = template.slot_config?.slots || [];
+
+    // Group slots by station from template
+    const stationsMap = {};
+    const generalSlots = [];
+
+    slotConfig.forEach(slot => {
+        if (slot.station) {
+            if (!stationsMap[slot.station]) stationsMap[slot.station] = [];
+            stationsMap[slot.station].push(slot);
+        } else {
+            generalSlots.push(slot);
+        }
+    });
+
+    // 1. Create General Station if there are general slots or if no slots at all
+    if (generalSlots.length > 0 || (Object.keys(stationsMap).length === 0 && generalSlots.length === 0)) {
+        addStationWithShifts('General Volunteers', generalSlots); // We need to ensure addStationWithShifts exists or create it
+    }
+
+    // 2. Create named stations
+    Object.keys(stationsMap).forEach(stationName => {
+        addStationWithShifts(stationName, stationsMap[stationName]);
+    });
+}
+
+// Helper to create a station card with pre-filled shifts
+function addStationWithShifts(stationName, shifts) {
+    // Determine ID (random or incremental)
+    const stationId = Date.now() + Math.random().toString(36).substr(2, 5);
+
+    const div = document.createElement('div');
+    div.className = 'station-card';
+    div.dataset.stationId = stationId;
+    div.innerHTML = `
+        <div class="station-header">
+            <input type="text" class="station-title-input" value="${stationName}" placeholder="Station Name">
+            <div class="station-actions">
+                <button type="button" class="remove-station-btn">Remove Station</button>
+            </div>
+        </div>
+        <div class="shift-list">
+             <div class="shift-row" style="background: transparent; border: none; padding: 0;">
+                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">Shift Name</span>
+                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">Start</span>
+                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">End</span>
+                <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted);">Slots</span>
+                <span></span>
+            </div>
+        </div>
+        <button type="button" class="add-shift-btn">+ Add Shift</button>
+    `;
+
+    const shiftList = div.querySelector('.shift-list');
+
+    // Add shifts
+    if (shifts && shifts.length > 0) {
+        shifts.forEach(s => {
+            // Map template slot to data format expected by addShiftRowWithData
+            // Template slot: { name: "Morning", start: "07:00", end: "12:00", capacity: 5, sales_config: {...} }
+            const shiftData = {
+                name: s.name || s.shift_name,
+                start: s.start || s.start_time,
+                end: s.end || s.end_time,
+                capacity: s.capacity,
+                sales_config: s.sales_config // Pass sales config through
+            };
+            addShiftRowWithData(shiftList, shiftData);
+        });
+    } else {
+        // Add default empty row if no shifts
+        addShiftRowWithData(shiftList);
+    }
+
+    elements.stationsContainer.appendChild(div);
+    attachStationListeners(div);
 }
 
 init();

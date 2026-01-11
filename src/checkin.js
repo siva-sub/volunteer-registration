@@ -73,6 +73,7 @@ async function init() {
                 elements.checkInTime.textContent = `Checked in at ${formatDateTime(data.checked_in_at)}`;
                 elements.shiftInfo.textContent = `${data.shift_date} - ${data.shift_name}`;
                 addFeedbackButton(elements.successSection, token, data); // Add button
+                renderSalesInfo(data);
                 showSection(elements.successSection);
                 break;
 
@@ -80,6 +81,7 @@ async function init() {
                 elements.alreadyName.textContent = data.volunteer_name;
                 elements.alreadyTime.textContent = `You checked in at ${formatDateTime(data.checked_in_at)}`;
                 addFeedbackButton(elements.alreadySection, token, data); // Add button
+                renderSalesInfo(data);
                 showSection(elements.alreadySection);
                 break;
 
@@ -101,6 +103,7 @@ async function init() {
                 elements.volunteerName.textContent = 'This shift does not require check-in.';
                 elements.checkInTime.textContent = '';
                 addFeedbackButton(elements.successSection, token, data);
+                renderSalesInfo(data);
                 showSection(elements.successSection);
                 break;
 
@@ -115,6 +118,24 @@ async function init() {
         elements.errorTitle.textContent = 'Error';
         elements.errorMessage.textContent = error.message || 'Failed to process check-in';
         showSection(elements.errorSection);
+    }
+}
+
+function renderSalesInfo(data) {
+    const section = document.getElementById('salesSection');
+    const list = document.getElementById('salesList');
+    if (!section || !list) return;
+
+    if (data.sales_config && data.sales_config.items && data.sales_config.items.length > 0) {
+        section.hidden = false;
+        list.innerHTML = data.sales_config.items.map(item => `
+            <div style="display: flex; justify-content: space-between; padding: 8px; background: #fff; border-radius: 4px; border: 1px solid #eee;">
+                <span style="font-weight: 500;">${item.name}</span>
+                <span style="font-weight: 600; color: var(--color-primary);">$${parseFloat(item.price).toFixed(2)}</span>
+            </div>
+        `).join('');
+    } else {
+        section.hidden = true;
     }
 }
 

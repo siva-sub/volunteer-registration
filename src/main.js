@@ -365,6 +365,13 @@ function renderShiftCards() {
     const icon = getShiftIcon(slot.shift_name);
     const timeRange = `${formatTime(slot.start_time)} – ${formatTime(slot.end_time)}`;
 
+    // Sales info
+    const salesConfig = slot.sales_config;
+    const hasSales = salesConfig && salesConfig.items && salesConfig.items.length > 0;
+    const salesTooltip = hasSales
+      ? salesConfig.items.map(i => `${i.name} ($${i.price})`).join(', ')
+      : '';
+
     return `
       <div 
         class="shift-card ${isSelected ? 'shift-card--selected' : ''} ${isFull ? 'shift-card--full' : ''}"
@@ -373,12 +380,17 @@ function renderShiftCards() {
         aria-checked="${isSelected}"
         aria-disabled="${isFull}"
         tabindex="${isFull ? -1 : 0}"
+        ${hasSales ? `title="Selling: ${salesTooltip}"` : ''}
       >
         <div class="shift-card-header">
             <span class="shift-icon">${icon}</span>
             <span class="shift-name">${slot.shift_name}</span>
+            ${hasSales ? '<span class="sales-badge" title="' + salesTooltip + '">💰 Sales</span>' : ''}
         </div>
         ${slot.station ? `<span class="shift-station-label">${slot.station}</span>` : ''}
+        
+        ${hasSales ? `<div class="sales-items-preview" style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">🛍️ ${salesTooltip}</div>` : ''}
+
         <span class="shift-time">${timeRange}</span>
         <div class="shift-availability shift-availability--${availability.class}">
           <div class="availability-dots">
