@@ -248,6 +248,42 @@
         </div>
       </div>
     </div>
+
+    <!-- Add Volunteer Modal (Admin) -->
+    <div class="modal-overlay" id="addVolunteerModal" hidden>
+      <div class="modal modal--small">
+        <div class="modal-header">
+          <h3 class="modal-title">Add Volunteer Manually</h3>
+          <button class="modal-close" id="addVolunteerModalClose">×</button>
+        </div>
+        <div class="modal-body">
+          <form id="addVolunteerForm">
+            <input type="hidden" id="addVolunteerSlotId">
+            <div class="form-group">
+              <label class="form-label">Assigning to:</label>
+              <p id="addVolunteerSlotName" class="form-subtext" style="font-weight: 600; color: var(--color-primary);">
+                Shift Name</p>
+            </div>
+            <div class="form-group">
+              <label for="avName" class="form-label">Full Name</label>
+              <input type="text" id="avName" name="fullName" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label for="avPhone" class="form-label">Phone</label>
+              <input type="tel" id="avPhone" name="phone" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label for="avEmail" class="form-label">Email (Optional)</label>
+              <input type="email" id="avEmail" name="email" class="form-input">
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="action-btn action-btn--secondary" id="addVolunteerCancelBtn">Cancel</button>
+              <button type="submit" class="action-btn action-btn--primary">Add Volunteer</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="./src/main.js"></script>

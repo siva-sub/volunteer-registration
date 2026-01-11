@@ -63,14 +63,14 @@ BEGIN
           fq.question_text,
           fq.question_type,
           (
-             SELECT json_agg(r.response_value)
+             SELECT json_agg(r.response)
              FROM feedback_responses r
              WHERE r.question_id = fq.id
           ) as responses,
           (
-             SELECT AVG(response_value::NUMERIC)
+             SELECT AVG(response::NUMERIC)
              FROM feedback_responses r
-             WHERE r.question_id = fq.id AND fq.question_type IN ('stars', 'rating') AND r.response_value ~ '^[0-9\.]+$'
+             WHERE r.question_id = fq.id AND fq.question_type IN ('stars', 'rating') AND r.response ~ '^[0-9\.]+$'
           ) as average_rating
       FROM feedback_questions fq
       WHERE fq.event_id = p_event_id

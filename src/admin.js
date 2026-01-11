@@ -2138,8 +2138,11 @@ function init() {
     if (elements.addVolunteerForm) {
         elements.addVolunteerForm.addEventListener('submit', window.handleManualAddSubmit);
     }
-    const closeAddVol = document.getElementById('closeAddVolunteerModal');
+    const closeAddVol = document.getElementById('addVolunteerModalClose');
     if (closeAddVol) closeAddVol.addEventListener('click', window.closeAddVolunteerModal);
+    const cancelAddVol = document.getElementById('addVolunteerCancelBtn');
+    if (cancelAddVol) cancelAddVol.addEventListener('click', window.closeAddVolunteerModal);
+
     elements.createEventBtn.addEventListener('click', openCreateEventModal);
     if (elements.backToEventsBtn) elements.backToEventsBtn.addEventListener('click', showEventsList);
     if (elements.refreshBtn) elements.refreshBtn.addEventListener('click', handleRefresh);
